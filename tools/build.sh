@@ -1,5 +1,5 @@
 #!/bin/bash
-# The one way to build Autofill.
+# The one way to build Clerk.
 #
 #   ./tools/build.sh            build and install to /Applications
 #   ./tools/build.sh --no-install
@@ -7,28 +7,28 @@
 # The Xcode project is GENERATED: safari-web-extension-converter reads
 # `extension/` and writes `app/`, then tools/fix_project.py turns the AppKit
 # skeleton it insists on making into the SwiftUI menu-bar app. So the project is
-# thrown away and rebuilt every time, and `extension/` plus `app/Autofill/
-# Autofill/{AutofillApp,SettingsView,Core}` are the only sources that matter.
+# thrown away and rebuilt every time, and `extension/` plus `app/Clerk/
+# Clerk/{ClerkApp,SettingsView,Core}` are the only sources that matter.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SWIFT="$ROOT/app/Autofill/Autofill"
+SWIFT="$ROOT/app/Clerk/Clerk"
 KEEP="$(mktemp -d)"
 cd "$ROOT"
 
 # hold the hand-written Swift while the project is regenerated
 cp -R "$SWIFT/Core" "$KEEP/Core"
-cp "$SWIFT/AutofillApp.swift" "$SWIFT/SettingsView.swift" "$SWIFT/ShortcutRecorder.swift" "$KEEP/"
+cp "$SWIFT/ClerkApp.swift" "$SWIFT/SettingsView.swift" "$SWIFT/ShortcutRecorder.swift" "$KEEP/"
 cp -R "$SWIFT/Assets.xcassets" "$KEEP/Assets.xcassets"
 
 rm -rf app
 xcrun safari-web-extension-converter extension \
-  --project-location app --app-name "Autofill" \
-  --bundle-identifier com.DNZ.autofill --macos-only --no-open --no-prompt --force \
+  --project-location app --app-name "Clerk" \
+  --bundle-identifier com.DNZ.clerk --macos-only --no-open --no-prompt --force \
   2>&1 | grep -vE "^(App|Platform|Language|Xcode|Warning|\t)" || true
 
 cp -R "$KEEP/Core" "$SWIFT/Core"
-cp "$KEEP/AutofillApp.swift" "$KEEP/SettingsView.swift" "$KEEP/ShortcutRecorder.swift" "$SWIFT/"
+cp "$KEEP/ClerkApp.swift" "$KEEP/SettingsView.swift" "$KEEP/ShortcutRecorder.swift" "$SWIFT/"
 rm -rf "$SWIFT/Assets.xcassets" && cp -R "$KEEP/Assets.xcassets" "$SWIFT/Assets.xcassets"
 rm -f "$SWIFT/AppDelegate.swift" "$SWIFT/ViewController.swift"
 rm -rf "$SWIFT/Base.lproj" "$SWIFT/Resources"
@@ -36,12 +36,12 @@ rm -rf "$KEEP"
 
 python3 tools/fix_project.py
 
-xcodebuild -project app/Autofill/Autofill.xcodeproj -scheme Autofill \
+xcodebuild -project app/Clerk/Clerk.xcodeproj -scheme Clerk \
   -configuration Release -derivedDataPath app/build \
   -allowProvisioningUpdates DEVELOPMENT_TEAM=VWR39LZW5M build \
   2>&1 | grep -E "error:|BUILD (SUCCEEDED|FAILED)" | grep -v "^ " | sort -u
 
-APP="app/build/Build/Products/Release/Autofill.app"
+APP="app/build/Build/Products/Release/Clerk.app"
 
 # Xcode leaves `get-task-allow` in the entitlements even with a Developer ID
 # certificate, and notarisation refuses a build that has it. Re-sign both parts
@@ -73,8 +73,8 @@ if [ -d "$SP" ]; then
   done
 fi
 
-for part in "$APP/Contents/PlugIns/Autofill Extension.appex" "$APP"; do
-  ENT="${TMPDIR:-/tmp}/autofill-ent-$$.plist"
+for part in "$APP/Contents/PlugIns/Clerk Extension.appex" "$APP"; do
+  ENT="${TMPDIR:-/tmp}/clerk-ent-$$.plist"
   codesign -d --entitlements "$ENT" --xml "$part" 2>/dev/null
   /usr/libexec/PlistBuddy -c "Delete :com.apple.security.get-task-allow" "$ENT" 2>/dev/null || true
   codesign --force --options runtime --timestamp \
@@ -88,7 +88,7 @@ codesign --verify --deep --strict "$APP" && echo "signature verifies"
 # which cost an evening on 2026-09-22. --no-install skips it.
 if [ "${1:-}" != "--no-install" ]; then
   echo "notarising…"
-  ZIP="${TMPDIR:-/tmp}/Autofill-notarize.zip"
+  ZIP="${TMPDIR:-/tmp}/Clerk-notarize.zip"
   rm -f "$ZIP"
   ditto -c -k --keepParent "$APP" "$ZIP"
   xcrun notarytool submit "$ZIP" \
@@ -100,7 +100,7 @@ if [ "${1:-}" != "--no-install" ]; then
 fi
 
 if [ "${1:-}" != "--no-install" ]; then
-  pkill -x Autofill 2>/dev/null || true
+  pkill -x Clerk 2>/dev/null || true
   sleep 1
   # Update the bundle IN PLACE. Deleting and re-copying gives it a new identity
   # every build, and Safari loses track of the extension - it vanished from the
@@ -109,22 +109,22 @@ if [ "${1:-}" != "--no-install" ]; then
   # gives Safari a new identity and the extension vanished from its Extensions
   # list entirely on 2026-09-22 because of that. ditto also keeps the stapled
   # notarisation ticket, which rsync drops.
-  ditto app/build/Build/Products/Release/Autofill.app /Applications/Autofill.app
+  ditto app/build/Build/Products/Release/Clerk.app /Applications/Clerk.app
   # Do NOT `pluginkit -r` here. It hands the extension a new UUID, Safari treats
   # it as a different extension, and it drops out of the Extensions list - which
   # looked exactly like the extension breaking, twice. macOS picks up an updated
   # appex on its own. Only re-register by hand if it is genuinely missing:
-  #   pluginkit -mA -p com.apple.Safari.web-extension | grep autofill
+  #   pluginkit -mA -p com.apple.Safari.web-extension | grep clerk
 
   # Safari lists ONE extension per copy of the app macOS has seen, so the build
   # output shows up beside the installed app and there appear to be two. Drop the
   # build copy from Launch Services; only /Applications should be known.
   LSR=/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister
-  "$LSR" -u "$ROOT/app/build/Build/Products/Release/Autofill.app" 2>/dev/null || true
+  "$LSR" -u "$ROOT/app/build/Build/Products/Release/Clerk.app" 2>/dev/null || true
 
   # Never leave it down: a dead helper looks exactly like a broken extension.
   for i in 1 2 3; do
-    open -a /Applications/Autofill.app
+    open -a /Applications/Clerk.app
     sleep 2
     nc -z 127.0.0.1 8771 2>/dev/null && break
   done

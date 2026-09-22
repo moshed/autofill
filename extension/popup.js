@@ -15,7 +15,7 @@ async function pageFields(tabId) {
   try {
     const r = await chrome.scripting.executeScript({
       target: { tabId, frameIds: [0] },
-      func: () => (window.__autofillSnapshot ? window.__autofillSnapshot() : null),
+      func: () => (window.__clerkSnapshot ? window.__clerkSnapshot() : null),
     });
     return r?.[0]?.result || null;
   } catch (e) {
@@ -30,8 +30,8 @@ async function run(profile) {
   const call = () => chrome.scripting.executeScript({
     target,
     func: (p) => {
-      if (!window.__autofillFill) return false;
-      window.__autofillFill(p);
+      if (!window.__clerkFill) return false;
+      window.__clerkFill(p);
       return true;
     },
     args: [profile],
@@ -85,9 +85,9 @@ function row(label, sub, profile, first) {
      * only thing an extension can do to bring a Mac app back. */
     const li = document.createElement("li");
     li.tabIndex = 0;
-    li.textContent = "Start Autofill";
+    li.textContent = "Start Clerk";
     const act = () => {
-      chrome.tabs.create({ url: "autofill://settings" });
+      chrome.tabs.create({ url: "clerk://settings" });
       window.close();
     };
     li.onclick = act;

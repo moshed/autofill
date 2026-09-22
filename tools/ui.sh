@@ -4,13 +4,13 @@
 #   ./tools/ui.sh click "Check now" # press the first button with that name
 set -euo pipefail
 ACT="${1:-dump}"; WANT="${2:-}"
-open "autofill://settings" >/dev/null 2>&1 || true
+open "clerk://settings" >/dev/null 2>&1 || true
 sleep 1
 osascript - "$ACT" "$WANT" <<'AS'
 on run argv
   set act to item 1 of argv
   set want to item 2 of argv
-  tell application "System Events" to tell process "Autofill"
+  tell application "System Events" to tell process "Clerk"
     set frontmost to true
     delay 0.4
     set out to ""

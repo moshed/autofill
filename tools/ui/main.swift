@@ -11,7 +11,7 @@
 import ApplicationServices
 import AppKit
 
-let app = "Autofill"
+let app = "Clerk"
 
 func attr(_ e: AXUIElement, _ key: String) -> Any? {
     var v: AnyObject?

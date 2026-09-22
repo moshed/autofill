@@ -1,10 +1,10 @@
-# Autofill
+# Clerk
 
 A menu-bar Mac app plus a browser extension. Put the cursor in a form field,
 press **Alt+Shift+F**, and it fills in the right person's detail — a passport
 field next to "Judah" gets Judah's passport number, not Moshe's.
 
-Built 2026-09-21. Bundle `com.DNZ.autofill`. Lives in `/Applications`.
+Built 2026-09-21. Bundle `com.DNZ.clerk`. Lives in `/Applications`.
 
 ## The two rules that shape everything
 
@@ -27,8 +27,8 @@ fields. Pressing the button is the consent, so there is no switch to forget.
 ```
 extension/    the web extension (manifest v3): Safari and Chrome, same files
 app/          GENERATED Xcode project - do not hand-edit, see below
-  Autofill/Autofill/
-    AutofillApp.swift   menu bar, the model, export/import, demo mode
+  Clerk/Clerk/
+    ClerkApp.swift   menu bar, the model, export/import, demo mode
     SettingsView.swift  two tabs: Data and Setup
     Core/
       Fields.swift    28 field types, the pattern classifier
@@ -49,14 +49,14 @@ icons/        the app icon source
 `tools/build.sh` deletes `app/`, runs the converter, puts the hand-written Swift
 back, then `tools/fix_project.py` turns it into the SwiftUI menu-bar app: adds
 the sources, turns the sandbox OFF, sets `LSUIElement`, restores the
-`autofill://` URL scheme and fixes the bundle id case.
+`clerk://` URL scheme and fixes the bundle id case.
 
 ```bash
 ./tools/build.sh                 # build + install to /Applications
 ./tools/build.sh --no-install
 ```
 
-**Never hand-edit `app/Autofill/Autofill.xcodeproj` — the next build throws it
+**Never hand-edit `app/Clerk/Clerk.xcodeproj` — the next build throws it
 away.** Anything that must survive goes in `tools/fix_project.py`.
 
 The sandbox is off on purpose: a sandboxed app gets its own keychain and could
@@ -167,7 +167,7 @@ used on. Check it directly - this is the file, not a guess:
 
 ```bash
 plutil -p ~/Library/Containers/com.apple.Safari/Data/Library/Safari/WebExtensions/Extensions.plist \
-  | grep -A20 "com.DNZ.autofill"
+  | grep -A20 "com.DNZ.clerk"
 ```
 
 `GrantedPermissionOrigins` listing a single site is the whole story: the content
@@ -179,7 +179,7 @@ site it has no access to and shows its own per-site popover instead of firing
 `action.onClicked` (`OpenedPerSitePopover` in the same file).
 
 Only the person can grant it, in Safari's own UI:
-**Settings -> Extensions -> Autofill -> Allow on Every Website.**
+**Settings -> Extensions -> Clerk -> Allow on Every Website.**
 `host_permissions` now declares `<all_urls>` so that is the offered choice.
 
 ## One press fills the whole form
@@ -239,7 +239,7 @@ then setting it back to 700ms.
 click could not fill on its own, which is the thing worth optimising.
 
 Everything the button does CALLS a function on the isolated world's window
-(`__autofillFill`, `__autofillMenu`, `__autofillSnapshot`) rather than sending a
+(`__clerkFill`, `__clerkMenu`, `__clerkSnapshot`) rather than sending a
 message, for the reason below.
 
 ## A message never reaches an injected content script
@@ -250,7 +250,7 @@ the message simply never arrives. Proven by logging "listener registered" and
 still getting nothing back, six retries over 700ms.
 
 Everything the button does therefore CALLS a function on the isolated world's
-window - `__autofillFill`, `__autofillMenu`, `__autofillSnapshot` - rather than
+window - `__clerkFill`, `__clerkMenu`, `__clerkSnapshot` - rather than
 asking for a reply.
 
 ## The sidebar keeps its width
@@ -281,10 +281,10 @@ nothing. A new tab works, an old one never recovers. That is exactly what "it
 works in a new window but not the old one" means.
 
 The toolbar button is supposed to rescue this by injecting the script on demand -
-but the re-injection guard `if (window.__autofillLoaded) return` saw the flag the
+but the re-injection guard `if (window.__clerkLoaded) return` saw the flag the
 DEAD copy had set and did nothing at all.
 
-So the script no longer bails. It calls `window.__autofillTeardown()` first,
+So the script no longer bails. It calls `window.__clerkTeardown()` first,
 which the previous copy left behind: it removes that copy's `keydown` and
 `focusin` listeners and its `runtime.onMessage` listener, then the new copy takes
 over. Clicking the button on an orphaned tab now brings the whole thing back, the
@@ -305,7 +305,7 @@ re-injection path. Click the real thing:
 ```bash
 osascript -e 'tell application "System Events" to tell process "Safari" to \
   click (first button of toolbar 1 of (first window whose name contains "fill.dev") \
-  whose description is "Autofill: fill this field")'
+  whose description is "Clerk: fill this field")'
 ```
 
 ## The toolbar button loses the focused field
@@ -326,13 +326,13 @@ offer an extension access to local files the way Chrome does. That is why the
 app serves the page.
 
 If the page will not fill, the helper is down, not the page. The popup says so
-and offers **Start Autofill**, which opens `autofill://settings` - the only way
+and offers **Start Clerk**, which opens `clerk://settings` - the only way
 an extension can bring a Mac app back.
 
 ## The test bench
 
 `http://127.0.0.1:8771/test` - the helper serves `extension/testpage.html`. A
-copy sits at `Autofill test page.html`, but **opening that file directly does not
+copy sits at `Clerk test page.html`, but **opening that file directly does not
 work**: Safari will not run an extension on a `file://` page. That is why the app
 serves it.
 
@@ -422,7 +422,7 @@ time may still be unsure; the page shows a list in that case.
 
 ## The log
 
-`~/Library/Logs/Autofill.log`. The extension posts to `POST /log` on the helper,
+`~/Library/Logs/Clerk.log`. The extension posts to `POST /log` on the helper,
 which appends a line. **Field labels and outcomes only — never a value.**
 
 Safari gives an extension no console anyone can see without opening the Web
@@ -487,7 +487,7 @@ written until Save.
 
 ## Privacy
 
-- The store is one keychain item, `autofill_store`. Nothing is written to a file
+- The store is one keychain item, `clerk_store`. Nothing is written to a file
   unless Moshe presses Export.
 - The helper sends **no CORS headers on purpose**. A web page can fire a request
   at 127.0.0.1:8771 but the browser will not let it read the answer.
@@ -529,7 +529,7 @@ exactly like the extension breaking. macOS picks up an updated appex by itself.
 Only re-register when it is genuinely absent from:
 
 ```bash
-pluginkit -mA -p com.apple.Safari.web-extension | grep autofill
+pluginkit -mA -p com.apple.Safari.web-extension | grep clerk
 ```
 
 ## The household is gone: values are LINKED instead
@@ -553,7 +553,7 @@ appear in the Extensions list and nothing says why. `tools/build.sh` therefore
 notarises on EVERY install; only `--no-install` skips it.
 
 ```bash
-spctl -a -vv /Applications/Autofill.app     # must say "source=Notarized Developer ID"
+spctl -a -vv /Applications/Clerk.app     # must say "source=Notarized Developer ID"
 ```
 
 ## Privacy
@@ -602,7 +602,7 @@ Three traps, all hit on 2026-09-22:
 **Cost half an hour on 2026-09-22.** A one-off `swiftc` loader wrote the store,
 and from then on the app froze at start up with no log line. The reason: macOS
 puts the creating binary in the item's ACL, so when a *different* binary reads
-it, `SecItemCopyMatching` **blocks** behind a "Autofill wants to use your
+it, `SecItemCopyMatching` **blocks** behind a "Clerk wants to use your
 confidential information" password prompt. The app was not broken; it was
 waiting on a dialog.
 
@@ -611,8 +611,8 @@ exists for exactly this — it loads an export at start up, so the keychain item
 born inside the app and nothing ever prompts.
 
 ```bash
-open -a /Applications/Autofill.app --args -ImportFile /path/to/export.json
-open -a /Applications/Autofill.app --args -ExportFile /tmp/out.json
+open -a /Applications/Clerk.app --args -ImportFile /path/to/export.json
+open -a /Applications/Clerk.app --args -ExportFile /tmp/out.json
 ```
 
 `-ExportFile` is the other half: it writes the store to a file at start up, so a
@@ -620,7 +620,7 @@ script can read it, change it and import it back WITHOUT a second binary ever
 touching the keychain item.
 
 If a prompt does appear, "Always Allow" settles it; deleting the item with
-`security delete-generic-password -s autofill_store` and re-importing through the
+`security delete-generic-password -s clerk_store` and re-importing through the
 app is the clean fix.
 
 **The identity is the code signature, so it changes when the signing certificate
@@ -632,7 +632,7 @@ ID + notarised the signature is stable and rebuilds keep the same identity.
 
 - the `jev_api` item the other tools share — now the key lives in the app's own
   store as `StoreData.jevKey`, seeded through `-ImportFile`;
-- an `autofill_token` item, read on EVERY request — the token is gone entirely,
+- an `clerk_token` item, read on EVERY request — the token is gone entirely,
   the `Origin` header does that job.
 
 Both prompted, and both prompted from inside a request, which stalls the reply
@@ -712,11 +712,11 @@ build output sat beside the installed copy. `tools/build.sh` now unregisters the
 build copy after installing:
 
 ```bash
-lsregister -u app/build/Build/Products/Release/Autofill.app
+lsregister -u app/build/Build/Products/Release/Clerk.app
 ```
 
-`lsregister -dump | grep -i "path:.*Autofill.app"` should print only
-`/Applications/Autofill.app`.
+`lsregister -dump | grep -i "path:.*Clerk.app"` should print only
+`/Applications/Clerk.app`.
 
 ## Still to do
 
@@ -731,7 +731,7 @@ lsregister -u app/build/Build/Products/Release/Autofill.app
 ## History
 
 The engine was first written in Python (`engine/`, a launchd helper). It is in
-`Apps/_Old Versions/Autofill-python-engine/` — all of it was ported to Swift so
+`Apps/_Old Versions/Clerk-python-engine/` — all of it was ported to Swift so
 there is one implementation, and so the iOS version can reuse it.
 
 ## Updating (Sparkle)
@@ -740,7 +740,7 @@ there is one implementation, and so the iOS version can reuse it.
 staple, install, zip, sign, write `appcast.xml`, deploy. `--local` stops before
 the deploy.
 
-- Feed: `https://dancykier.com/autofill/appcast.xml`, checked once a day.
+- Feed: `https://dancykier.com/clerk/appcast.xml`, checked once a day.
 - Public key `5oQ5ZKJha6WUKKnFHdfjS6/Kq74AkLgCtz5wVoLyyA0=` is in Info.plist;
   the private key is `tools/sparkle/eddsa_private.pem` (chmod 600, never shipped).
 - **Sign with openssl, not Sparkle's `sign_update`.** That tool rejects a valid
@@ -764,8 +764,8 @@ the deploy.
 The app is published as a public zip, so anything inside it can be read. It
 therefore ships **no key at all**.
 
-- `https://dancykier.com/autofill/ai` is a Cloudflare Pages Function
-  (`Apps/Web/apps-hub/functions/autofill/ai.js`) holding `JEV_KEY` as a secret.
+- `https://dancykier.com/clerk/ai` is a Cloudflare Pages Function
+  (`Apps/Web/apps-hub/functions/clerk/ai.js`) holding `JEV_KEY` as a secret.
   Set it with
   `npx wrangler pages secret put JEV_KEY --project-name dancykier`.
 - Empty key in Setup -> the app posts to that URL. A key pasted in Setup -> the
@@ -781,7 +781,7 @@ therefore ships **no key at all**.
 ## Test bench
 
 - Local: `http://127.0.0.1:8771/test`
-- Public: `https://dancykier.com/autofill/test` (`noindex`, and there is no
+- Public: `https://dancykier.com/clerk/test` (`noindex`, and there is no
   `<form>` element at all, so nothing can be submitted anywhere)
 - 55 inputs, 4 dropdowns, 1 textarea, 9 sections, including a fieldset that must
   be left alone.

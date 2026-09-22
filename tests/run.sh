@@ -2,8 +2,8 @@
 # Compiles the engine on its own and runs the labelled cases. No GUI, no keychain.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-CORE="$HERE/../app/Autofill/Autofill/Core"
-OUT="${TMPDIR:-/tmp}/autofill-tests"
+CORE="$HERE/../app/Clerk/Clerk/Core"
+OUT="${TMPDIR:-/tmp}/clerk-tests"
 
 # -target matters: on macOS 27 a bare swiftc stamps a minos the binary cannot run on.
 swiftc -target arm64-apple-macos13.0 -O \

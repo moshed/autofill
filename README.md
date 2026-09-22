@@ -1,4 +1,4 @@
-# Autofill
+# Clerk
 
 A Mac app and Safari extension that fills any web form from details you keep on
 your own Mac — names, emails, phone numbers, addresses, passports, frequent
@@ -68,14 +68,14 @@ tools/release.sh            # raise the build number, publish, update the feed
 The Xcode project is generated on every build from `extension/` by
 `safari-web-extension-converter`, then reshaped by `tools/fix_project.py`. The
 files that matter are `extension/` and
-`app/Autofill/Autofill/{Core,AutofillApp.swift,SettingsView.swift}`.
+`app/Clerk/Clerk/{Core,ClerkApp.swift,SettingsView.swift}`.
 
 `CLAUDE.md` holds the long version: the architecture, and every trap that cost
 an evening.
 
 ## Try the field bench
 
-<https://dancykier.com/autofill/test> — 55 inputs, 4 dropdowns, radios, date
+<https://dancykier.com/clerk/test> — 55 inputs, 4 dropdowns, radios, date
 pickers, awkward labels and a section that must be left alone. There is no
 `<form>` element on it, so nothing can be submitted anywhere.
 

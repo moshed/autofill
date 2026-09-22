@@ -33,4 +33,4 @@ autofill-export.json
 .DS_Store
 
 # A stray older copy of the test bench. The real one is extension/testpage.html.
-Autofill test page.html
+old test page.html

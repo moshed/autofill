@@ -10,11 +10,11 @@
  * a tab that was open before the update stays broken until it is reloaded.
  *
  * So this does NOT bail when it finds itself already loaded. It tears the old
- * copy down and takes over. `__autofillTeardown` is what makes that possible.
+ * copy down and takes over. `__clerkTeardown` is what makes that possible.
  */
-try { window.__autofillTeardown?.(); } catch (e) { /* the old context is dead */ }
+try { window.__clerkTeardown?.(); } catch (e) { /* the old context is dead */ }
 try {
-  window.__autofillLoaded = true;
+  window.__clerkLoaded = true;
 
 const IGNORE_TYPES = new Set([
   "password", "hidden", "submit", "button", "reset", "image", "file",
@@ -404,9 +404,9 @@ function filledSummary(done, held, as) {
  */
 function chooseProfile() {
   fillGen++;                                   // cancel anything still in flight
-  const snap = window.__autofillSnapshot ? window.__autofillSnapshot() : {};
+  const snap = window.__clerkSnapshot ? window.__clerkSnapshot() : {};
   chrome.runtime.sendMessage({ type: "profiles", payload: snap }, (list) => {
-    if (!list || !list.length) { chip("Autofill: nobody stored yet", "bad"); return; }
+    if (!list || !list.length) { chip("Clerk: nobody stored yet", "bad"); return; }
 
     /* Group the flat list into a person and their labels. */
     const people = [];
@@ -567,7 +567,7 @@ function fillEverything(as) {
   }, (res) => {
     if (gen !== fillGen) return;              // superseded while it was in flight
     if (!res || !res.results) {
-      chip(res && res.error ? `Autofill: ${res.error}` : "Autofill: no answer", "bad");
+      chip(res && res.error ? `Clerk: ${res.error}` : "Clerk: no answer", "bad");
       return;
     }
     let done = 0, held = 0;
@@ -709,10 +709,10 @@ chrome.runtime.onMessage.addListener(onFillMessage);
  * reach a copy that was injected programmatically - the listener registers, the
  * message never arrives - so the toolbar button calls these directly with a
  * second executeScript instead of relying on a reply. */
-window.__autofillFill = (profile) => fillEverything(profile || null);
-window.__autofillMenu = () => { clearOurFill(); chooseProfile(); };
+window.__clerkFill = (profile) => fillEverything(profile || null);
+window.__clerkMenu = () => { clearOurFill(); chooseProfile(); };
 /* The popup asks for this so it can put the list in a sensible order. */
-window.__autofillSnapshot = () => {
+window.__clerkSnapshot = () => {
   const groups = new Map();
   return {
     url: location.href, title: document.title,
@@ -724,19 +724,19 @@ window.__autofillSnapshot = () => {
 };
 
 /* Everything this copy attached, so the next copy can take over cleanly. */
-window.__autofillTeardown = () => {
+window.__clerkTeardown = () => {
   document.removeEventListener("keydown", onShortcut, true);
   document.removeEventListener("focusin", onFocusIn, true);
   try { chrome.runtime.onMessage.removeListener(onFillMessage); } catch (e) { /* dead */ }
   clearOverlay();
-  window.__autofillTeardown = null;
+  window.__clerkTeardown = null;
 };
 
 function doFill() {
   const el = focused();
   note(`fill asked for; focused field = ${el ? (el.name || el.id || el.type) : "none"}`);
   if (!el) {
-    chip("Autofill: click into a field first", "bad");
+    chip("Clerk: click into a field first", "bad");
     return;
   }
 
@@ -751,7 +751,7 @@ function doFill() {
 
   chrome.runtime.sendMessage({ type: "suggest", payload: snapshot(el) }, (res) => {
     if (!res || !res.ok) {
-      chip(res?.error ? `Autofill: ${res.error}` : "Autofill: no answer", "bad");
+      chip(res?.error ? `Clerk: ${res.error}` : "Clerk: no answer", "bad");
       return;
     }
     if (res.unsure && (res.alternatives || []).length > 1) {

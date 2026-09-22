@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Autofill",
+  "name": "Clerk",
   "version": "1.0",
   "description": "Fills the field you are in with the right person's details.",
   "permissions": [
@@ -27,7 +27,7 @@
     }
   ],
   "action": {
-    "default_title": "Autofill \u2014 click to fill, double-click to choose",
+    "default_title": "Clerk \u2014 click to fill, double-click to choose",
     "default_icon": {
       "48": "icons/icon-48.png",
       "96": "icons/icon-96.png",

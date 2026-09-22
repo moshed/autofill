@@ -12,13 +12,13 @@ import sys
 import uuid
 
 PROJ = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                    "app/Autofill/Autofill.xcodeproj/project.pbxproj")
+                    "app/Clerk/Clerk.xcodeproj/project.pbxproj")
 
 # the files the converter makes that the SwiftUI app does not want
 DROP = ["AppDelegate.swift", "ViewController.swift", "Main.storyboard", "Main.html",
         "Icon.png", "Style.css", "Script.js"]
 
-ADD = ["AutofillApp.swift", "SettingsView.swift", "ShortcutRecorder.swift",
+ADD = ["ClerkApp.swift", "SettingsView.swift", "ShortcutRecorder.swift",
        "Core/Fields.swift", "Core/Store.swift", "Core/Match.swift",
        "Core/Jev.swift", "Core/Server.swift", "Core/Importer.swift"]
 
@@ -61,7 +61,7 @@ def drop_objects(s, names):
     return "\n".join(out)
 
 
-INFO = os.path.join(os.path.dirname(PROJ), "..", "Autofill", "Info.plist")
+INFO = os.path.join(os.path.dirname(PROJ), "..", "Clerk", "Info.plist")
 BUILD = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                           "build_number")).read().strip()
 
@@ -69,7 +69,7 @@ BUILD = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
 # is tools/sparkle/eddsa_private.pem and is never put in the keychain, so nothing
 # ever prompts for a password to sign a release.
 SPARKLE_KEYS = """	<key>SUFeedURL</key>
-	<string>https://dancykier.com/autofill/appcast.xml</string>
+	<string>https://dancykier.com/clerk/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>5oQ5ZKJha6WUKKnFHdfjS6/Kq74AkLgCtz5wVoLyyA0=</string>
 	<key>SUEnableAutomaticChecks</key>
@@ -82,10 +82,10 @@ URL_TYPES = """	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.DNZ.autofill</string>
+			<string>com.DNZ.clerk</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>autofill</string>
+				<string>clerk</string>
 			</array>
 		</dict>
 	</array>
@@ -93,7 +93,7 @@ URL_TYPES = """	<key>CFBundleURLTypes</key>
 
 
 def fix_info_plist():
-    """`open autofill://settings` is how the window is opened from a script or a
+    """`open clerk://settings` is how the window is opened from a script or a
     keyboard shortcut. The converter rewrites Info.plist, so put it back."""
     path = os.path.normpath(INFO)
     text = open(path).read()
@@ -229,8 +229,8 @@ def main():
                       "\t\t\t\tINFOPLIST_KEY_LSUIElement = YES;\n")
         # The converter capitalises the app's id but not the extension's, and
         # then the appex id is not prefixed by the app's - which fails the build.
-        b = b.replace("PRODUCT_BUNDLE_IDENTIFIER = com.DNZ.Autofill;",
-                      "PRODUCT_BUNDLE_IDENTIFIER = com.DNZ.autofill;")
+        b = b.replace("PRODUCT_BUNDLE_IDENTIFIER = com.DNZ.Clerk;",
+                      "PRODUCT_BUNDLE_IDENTIFIER = com.DNZ.clerk;")
         b = re.sub(r"MARKETING_VERSION = [^;]+;", "MARKETING_VERSION = 0.0.1;", b)
         # Sparkle compares CFBundleVersion, so the build number is what decides
         # whether an installed copy updates. tools/release.sh raises it.
@@ -238,7 +238,7 @@ def main():
                    f"CURRENT_PROJECT_VERSION = {BUILD};", b)
         return developer_id(b)
 
-    s, n = re.subn(r'/\* (?:Debug|Release) configuration for PBXNativeTarget "Autofill" \*/ '
+    s, n = re.subn(r'/\* (?:Debug|Release) configuration for PBXNativeTarget "Clerk" \*/ '
                    r"= \{.*?\n\t\t\};", settings, s, flags=re.S)
     if n != 2:
         sys.exit(f"expected 2 app build configurations, found {n}")
@@ -255,7 +255,7 @@ def main():
         return developer_id(b)
 
     s, n = re.subn(r'/\* (?:Debug|Release) configuration for PBXNativeTarget '
-                   r'"Autofill Extension" \*/ = \{.*?\n\t\t\};', ext_settings, s, flags=re.S)
+                   r'"Clerk Extension" \*/ = \{.*?\n\t\t\};', ext_settings, s, flags=re.S)
     if n != 2:
         sys.exit(f"expected 2 extension build configurations, found {n}")
 

@@ -5,12 +5,12 @@ const BASE = "http://127.0.0.1:8771";
 
 /* Safari gives an extension no console anyone can see without opening the Web
  * Inspector, so everything interesting is posted to the app, which writes
- * ~/Library/Logs/Autofill.log. Field labels and outcomes only - never a value. */
+ * ~/Library/Logs/Clerk.log. Field labels and outcomes only - never a value. */
 async function note(text) {
   try {
     await fetch(`${BASE}/log`, { method: "POST", body: `[bg] ${text}` });
   } catch (e) {
-    console.log("[Autofill]", text, "(and the log post failed:", e.message, ")");
+    console.log("[Clerk]", text, "(and the log post failed:", e.message, ")");
   }
 }
 
@@ -113,7 +113,7 @@ async function fire(tab) {
   const call = () => chrome.scripting.executeScript({
     target,
     func: (wantMenu) => {
-      const f = wantMenu ? window.__autofillMenu : window.__autofillFill;
+      const f = wantMenu ? window.__clerkMenu : window.__clerkFill;
       if (!f) return false;
       f();
       return true;
