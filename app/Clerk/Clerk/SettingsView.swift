@@ -1,0 +1,668 @@
+import SwiftUI
+import Sparkle
+
+struct SettingsView: View {
+    @ObservedObject var model: AppModel
+    /// `-DemoSetup` opens on the Setup tab, so it can be looked at and captured.
+    @State private var tab = CommandLine.arguments.contains("-DemoSetup") ? Tab.setup : Tab.data
+
+    enum Tab: String, CaseIterable {
+        case data = "Data", setup = "Setup"
+        var symbol: String { self == .data ? "person.text.rectangle" : "gearshape" }
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            switch tab {
+            case .data: DataView(model: model)
+            case .setup: SetupView(model: model)
+            }
+        }
+        .frame(minWidth: 820, minHeight: 600)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("", selection: $tab) {
+                    ForEach(Tab.allCases, id: \.self) {
+                        Image(systemName: $0.symbol)
+                            .help($0.rawValue)
+                            .tag($0)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .frame(width: 110)
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if let note = model.note {
+                HStack(spacing: 8) {
+                    Text(note).font(.callout)
+                    Button("OK") { model.note = nil }.buttonStyle(.plain).opacity(0.7)
+                }
+                .padding(.horizontal, 14).padding(.vertical, 9)
+                .background(.regularMaterial, in: Capsule())
+                .overlay(Capsule().strokeBorder(.quaternary))
+                .shadow(radius: 8, y: 2)
+                .padding(.bottom, 16)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.snappy, value: model.note)
+    }
+}
+
+// MARK: - Data
+
+private struct DataView: View {
+    @ObservedObject var model: AppModel
+    @State private var selected: String?
+    @State private var newName = ""
+    @State private var importing = false
+    @State private var addingField = false
+    /// The pane keeps the width it was dragged to, across restarts.
+    @AppStorage("sidebarWidth") private var sidebarWidth = 240.0
+
+    private var person: Person? { model.data.people.first { $0.id == selected } }
+
+    var body: some View {
+        // A plain HSplitView cannot remember its position, and measuring it to
+        // save the width fed straight back into the width it was given - the
+        // pane grew until it hit the limit. A divider that is dragged by hand
+        // has neither problem.
+        HStack(spacing: 0) {
+            sidebar.frame(width: sidebarWidth)
+            Divider()
+                .frame(width: 1)
+                .overlay(Rectangle().fill(.clear).frame(width: 9).contentShape(Rectangle()))
+                .onHover { $0 ? NSCursor.resizeLeftRight.push() : NSCursor.pop() }
+                .gesture(DragGesture(coordinateSpace: .global)
+                    .onChanged { g in
+                        sidebarWidth = min(max(g.location.x, 180), 460)
+                    })
+            detail
+        }
+        .frame(maxHeight: .infinity)
+        .onAppear { if selected == nil { selected = model.data.people.first?.id } }
+        .sheet(isPresented: $importing) { ImportSheet(model: model) { importing = false } }
+        .sheet(isPresented: $addingField) {
+            NewFieldSheet(model: model) { addingField = false }
+        }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    importing = true
+                } label: {
+                    Label("Import", systemImage: "sparkles")
+                }
+                .labelStyle(.titleAndIcon)
+                .help("Paste a block of details and let the AI sort it out")
+            }
+        }
+    }
+
+    private var sidebar: some View {
+        VStack(spacing: 0) {
+            List(selection: $selected) {
+                ForEach(model.data.people) { p in
+                    HStack(spacing: 8) {
+                        Text(p.displayName)
+                        if p.isDefault {
+                            Image(systemName: "star.fill")
+                                .font(.caption2).foregroundStyle(.tertiary)
+                                .help("The one used when a form names nobody")
+                        }
+                        Spacer()
+                        Text("\(p.valueCount)").foregroundStyle(.tertiary).font(.caption)
+                    }
+                    .padding(.vertical, 2)
+                    .tag(p.id)
+                }
+            }
+            .listStyle(.sidebar)
+
+            Divider()
+            HStack(spacing: 6) {
+                TextField("Add a person", text: $newName)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit(add)
+                Button(action: add) { Image(systemName: "plus") }
+                    .disabled(newName.isEmpty)
+            }
+            .padding(8)
+        }
+        .frame(maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private var detail: some View {
+        if let p = person, let idx = model.data.people.firstIndex(of: p) {
+            PersonEditor(model: model, index: idx, onAddField: { addingField = true })
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            ContentUnavailableView {
+                Label("Nobody selected", systemImage: "person.crop.circle")
+            } description: {
+                Text("Pick someone on the left, or use Import to paste a block of details.")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+
+    private func add() {
+        let name = newName.trimmingCharacters(in: .whitespaces)
+        guard !name.isEmpty else { return }
+        let parts = name.split(separator: " ").map(String.init)
+        let id = (parts.first ?? name).lowercased()
+        guard !model.data.people.contains(where: { $0.id == id }) else { return }
+        var plain = ["given_name": parts.first ?? name]
+        if parts.count > 1 { plain["family_name"] = parts.dropFirst().joined(separator: " ") }
+        var p = Person(id: id, plain: plain)
+        p.isDefault = model.data.people.isEmpty
+        model.data.people.append(p)
+        newName = ""
+        selected = id
+        model.save(editing: id)
+    }
+}
+
+// MARK: - one person
+
+private struct PersonEditor: View {
+    @ObservedObject var model: AppModel
+    let index: Int
+    let onAddField: () -> Void
+
+    private var person: Person { model.data.people[index] }
+
+    private var groups: [(String, [FieldType])] {
+        // Derived fields are filled on a form but never typed in here.
+        let byGroup = Dictionary(grouping: Fields.all.filter { !$0.derived }, by: \.group)
+        let known = FieldGroup.order.compactMap { g -> (String, [FieldType])? in
+            guard let list = byGroup[g], !list.isEmpty else { return nil }
+            return (g, list)
+        }
+        let rest = byGroup.keys.filter { !FieldGroup.order.contains($0) }.sorted()
+            .map { ($0, byGroup[$0] ?? []) }
+        return known + rest
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 26) {
+                header
+
+                ForEach(groups, id: \.0) { group, types in
+                    VStack(alignment: .leading, spacing: 10) {
+                        Label(group, systemImage: FieldGroup.symbol(group))
+                            .font(.title3).fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        VStack(spacing: 6) {
+                            ForEach(types) { t in
+                                FieldRows(type: t, list: binding(for: t.key))
+                            }
+                        }
+                    }
+                }
+
+                Button(action: onAddField) {
+                    Label("Add a field", systemImage: "plus.circle")
+                }
+                .buttonStyle(.link)
+
+                Divider()
+                HStack {
+                    Button("Use by default") { makeDefault() }
+                        .disabled(person.isDefault)
+                        .help("Fill this person in when a form names nobody")
+                    Spacer()
+                    Button("Delete \(person.displayName)", role: .destructive) {
+                        let id = person.id
+                        model.data.people.removeAll { $0.id == id }
+                        model.save()
+                    }
+                }
+                .padding(.bottom, 8)
+            }
+            .padding(22)
+            .frame(maxWidth: 640, alignment: .leading)
+            .frame(maxWidth: .infinity)
+        }
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(person.displayName).font(.largeTitle).fontWeight(.semibold)
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text("Also called").foregroundStyle(.secondary)
+                TextField("Other names a form might use, comma separated",
+                          text: Binding(get: { person.aliases.joined(separator: ", ") },
+                                        set: {
+                                            model.data.people[index].aliases = $0
+                                                .split(separator: ",")
+                                                .map { $0.trimmingCharacters(in: .whitespaces) }
+                                                .filter { !$0.isEmpty }
+                                            model.save(editing: person.id)
+                                        }))
+                    .textFieldStyle(.roundedBorder)
+            }
+        }
+    }
+
+    private func binding(for key: String) -> Binding<[FieldValue]> {
+        Binding(get: { model.data.people[index].fields[key] ?? [] },
+                set: {
+                    model.data.people[index].fields[key] = $0.isEmpty ? nil : $0
+                    model.save(editing: model.data.people[index].id)
+                })
+    }
+
+    private func makeDefault() {
+        let id = person.id
+        for i in model.data.people.indices {
+            model.data.people[i].isDefault = (model.data.people[i].id == id)
+        }
+        model.save(editing: id)
+    }
+}
+
+/// One field type. Usually one line; press + for a second, and a short label box
+/// appears so "work" and "personal" can be told apart. The chain marks a value
+/// as the family's.
+private struct FieldRows: View {
+    let type: FieldType
+    @Binding var list: [FieldValue]
+
+    private var rows: [FieldValue] { list.isEmpty ? [FieldValue(value: "")] : list }
+
+    var body: some View {
+        VStack(spacing: 3) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { i, v in
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(i == 0 ? type.label : "")
+                        .frame(width: 168, alignment: .trailing)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+
+                    if rows.count > 1 {
+                        TextField("which", text: bindLabel(i))
+                            .textFieldStyle(.roundedBorder)
+                            .frame(width: 92)
+                    }
+
+                    TextField("", text: bindValue(i)).textFieldStyle(.roundedBorder)
+
+                    Button { toggleLink(i) } label: {
+                        Image(systemName: v.linked ? "link" : "link")
+                            .foregroundStyle(v.linked ? Color.accentColor : Color.secondary.opacity(0.35))
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(v.value.isEmpty)
+                    .help(v.linked
+                          ? "Shared with everyone — changing it here changes it for all of them"
+                          : "Share this with everyone")
+
+                    if i == rows.count - 1 {
+                        Button { list = rows + [FieldValue(value: "")] } label: {
+                            Image(systemName: "plus")
+                        }
+                        .buttonStyle(.borderless)
+                        .disabled(v.value.isEmpty)
+                        .help("Another \(type.label.lowercased()) — a work one, say")
+                    } else {
+                        Button {
+                            list = rows.enumerated().filter { $0.offset != i }.map(\.element)
+                        } label: {
+                            Image(systemName: "minus")
+                        }
+                        .buttonStyle(.borderless)
+                    }
+                }
+            }
+            if rows.count > 1 {
+                Text("The top one is used when nothing on the page says which.")
+                    .font(.caption2).foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+    }
+
+    private func toggleLink(_ i: Int) {
+        var r = rows
+        r[i].linked.toggle()
+        list = r
+    }
+
+    private func bindLabel(_ i: Int) -> Binding<String> {
+        Binding(get: { rows.indices.contains(i) ? rows[i].label : "" },
+                set: { var r = rows; r[i].label = $0
+                       list = r.filter { !$0.value.isEmpty || !$0.label.isEmpty } })
+    }
+
+    private func bindValue(_ i: Int) -> Binding<String> {
+        Binding(get: { rows.indices.contains(i) ? rows[i].value : "" },
+                set: { var r = rows; r[i].value = $0; list = r })
+    }
+}
+
+// MARK: - Import
+
+private struct ImportSheet: View {
+    @ObservedObject var model: AppModel
+    let done: () -> Void
+
+    @State private var raw = ""
+    @State private var rows = [ImportRow]()
+    @State private var busy = false
+
+    private var unsure: Int { rows.filter { !$0.sure }.count }
+    private var ticked: Int { rows.filter(\.include).count }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if rows.isEmpty { paste } else { review }
+        }
+        .frame(width: rows.isEmpty ? 640 : 940, height: rows.isEmpty ? 420 : 560)
+    }
+
+    private var paste: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Import", systemImage: "sparkles").font(.title2).fontWeight(.semibold)
+                Text("Paste anything — a passport, a page of notes, a whole family. "
+                     + "You check every line before a single thing is saved.")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            TextEditor(text: $raw)
+                .font(.system(.body, design: .monospaced))
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(.background.secondary, in: RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
+                .frame(maxHeight: .infinity)
+
+            HStack {
+                Button("Cancel") { done() }
+                Spacer()
+                Button(busy ? "Reading…" : "Extract with AI") { Task { await extract() } }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(raw.isEmpty || busy)
+            }
+        }
+        .padding(20)
+    }
+
+    private var review: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Check this before it is saved").font(.title3).fontWeight(.semibold)
+                Text(unsure == 0
+                     ? "Everything was read cleanly."
+                     : "\(unsure) at the top could not be read confidently. Fix or untick them.")
+                    .font(.callout)
+                    .foregroundStyle(unsure == 0 ? Color.secondary : Color.orange)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(18)
+
+            Divider()
+
+            Table($rows) {
+                TableColumn("") { $r in Toggle("", isOn: $r.include).labelsHidden() }
+                    .width(26)
+                TableColumn("") { $r in
+                    if !$r.wrappedValue.sure {
+                        Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                    }
+                }
+                .width(20)
+                TableColumn("Pasted") { $r in
+                    Text($r.wrappedValue.rawLabel.isEmpty ? "(no label)" : $r.wrappedValue.rawLabel)
+                        .lineLimit(1)
+                        .foregroundStyle($r.wrappedValue.rawLabel.isEmpty ? .secondary : .primary)
+                }
+                TableColumn("Value") { $r in
+                    Text($r.wrappedValue.value).monospaced().lineLimit(1)
+                }
+                TableColumn("Which") { $r in
+                    TextField("", text: $r.variant).textFieldStyle(.roundedBorder)
+                }
+                .width(88)
+                TableColumn("Field") { $r in
+                    Picker("", selection: $r.type) {
+                        Text("— skip —").tag(String?.none)
+                        ForEach(Fields.all) { Text($0.label).tag(String?.some($0.key)) }
+                    }
+                    .labelsHidden()
+                }
+                TableColumn("Whose") { $r in
+                    Picker("", selection: $r.personID) {
+                        ForEach(model.data.people) { Text($0.displayName).tag(String?.some($0.id)) }
+                    }
+                    .labelsHidden()
+                }
+                TableColumn("How") { $r in
+                    Text($r.wrappedValue.why).font(.caption).foregroundStyle(.tertiary).lineLimit(1)
+                }
+            }
+
+            Divider()
+            HStack {
+                Button("Back") { rows = [] }
+                Spacer()
+                Button("Save \(ticked) of \(rows.count)") { apply() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(ticked == 0)
+            }
+            .padding(18)
+        }
+    }
+
+    private func extract() async {
+        busy = true
+        defer { busy = false }
+        let parsed = Importer.parse(raw, people: model.data.people)
+        var out = await Importer.classifyLeftovers(parsed, people: model.data.people,
+                                                   key: model.data.jevKey)
+        out.sort { !$0.sure && $1.sure }
+        rows = out
+    }
+
+    private func apply() {
+        var data = model.data
+        let n = Importer.apply(rows, to: &data)
+        model.data = data
+        model.save()
+        model.note = "Saved \(n) \(n == 1 ? "value" : "values")."
+        done()
+    }
+}
+
+// MARK: - a field of Nolan's own
+
+struct NewFieldSheet: View {
+    @ObservedObject var model: AppModel
+    let done: () -> Void
+
+    @State private var label = ""
+    @State private var group = "Other"
+    @State private var newGroup = ""
+
+    private var key: String {
+        let base = label.lowercased()
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            .joined(separator: "_")
+        return base.isEmpty ? "custom" : base
+    }
+
+    private var chosenGroup: String {
+        let t = newGroup.trimmingCharacters(in: .whitespaces)
+        return t.isEmpty ? group : t
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Add a field").font(.title3).fontWeight(.semibold)
+                Text("A form box whose label matches this name will fill from it.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+
+            Form {
+                TextField("Name", text: $label, prompt: Text("Visa number"))
+                Picker("Group", selection: $group) {
+                    ForEach(FieldGroup.order, id: \.self) {
+                        Label($0, systemImage: FieldGroup.symbol($0)).tag($0)
+                    }
+                }
+                TextField("Or a new group", text: $newGroup, prompt: Text("Insurance"))
+            }
+            .formStyle(.grouped)
+
+            HStack {
+                Button("Cancel") { done() }
+                Spacer()
+                Button("Add") { add() }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(label.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding(20)
+        .frame(width: 440)
+    }
+
+    private func add() {
+        guard !model.data.customFields.contains(where: { $0.key == key }),
+              Fields.byKey[key] == nil else {
+            model.note = "There is already a field called that."
+            done()
+            return
+        }
+        model.data.customFields.append(
+            CustomField(key: key, label: label.trimmingCharacters(in: .whitespaces),
+                        group: chosenGroup))
+        Fields.register(model.data.customFields)
+        model.save()
+        done()
+    }
+}
+
+// MARK: - Setup
+
+private struct SetupView: View {
+    @ObservedObject var model: AppModel
+
+    var body: some View {
+        Form {
+            Section {
+                LabeledContent("Shortcut") {
+                    ShortcutRecorder(shortcut: Binding(
+                        get: { model.data.shortcut },
+                        set: { model.data.shortcut = $0; model.save() }))
+                }
+            } header: {
+                Label("Filling", systemImage: "keyboard")
+            } footer: {
+                Text("Put the cursor in a form field and press it. Press again on the same "
+                     + "field to cycle through the other people. Reload an open tab after "
+                     + "changing it.")
+            }
+
+            Section {
+                LabeledContent("Helper") {
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(model.server.running ? Color.green : Color.orange)
+                            .frame(width: 8, height: 8)
+                        Text(model.server.running ? "Running" : "Stopped")
+                            .foregroundStyle(.secondary)
+                        Button(model.server.running ? "Stop" : "Start") {
+                            model.server.running ? model.server.stop() : model.server.start()
+                        }
+                    }
+                }
+                LabeledContent("Browser extension") {
+                    Text(extensionNote).foregroundStyle(.secondary)
+                }
+                Toggle("Open at login", isOn: Binding(get: { model.openAtLogin },
+                                                      set: { model.openAtLogin = $0 }))
+                Toggle("Demo people", isOn: Binding(get: { model.demo },
+                                                    set: { model.setDemo($0) }))
+            } header: {
+                Label("Connection", systemImage: "antenna.radiowaves.left.and.right")
+            } footer: {
+                Text("The extension talks to this app on this Mac only, never over the network."
+                     + (model.demo
+                        ? "\n\nDemo people are showing. Nothing you change is saved, and forms "
+                        + "are filled with made-up details. Turn it off to get your own back."
+                        : ""))
+            }
+
+            Section {
+                LabeledContent("Your data") {
+                    HStack {
+                        Button("Export…") { model.export() }
+                        Button("Import…") { model.importFile() }
+                    }
+                }
+            } header: {
+                Label("Backup", systemImage: "externaldrive")
+            } footer: {
+                Text("Export writes everyone to a JSON file in plain text. Import reads one "
+                     + "back and replaces what is stored.")
+            }
+
+            Section {
+                LabeledContent("Version") {
+                    HStack {
+                        Text(model.version).foregroundStyle(.secondary)
+                        Button("Check now") { model.updater.checkForUpdates(nil) }
+                    }
+                }
+                LabeledContent("Your own AI key") {
+                    SecureField("optional", text: Binding(
+                        get: { model.data.jevKey },
+                        set: { model.data.jevKey = $0; model.save() }))
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 220)
+                }
+                Toggle("Work offline — never ask the AI", isOn: Binding(
+                    get: { model.data.offline },
+                    set: { model.data.offline = $0; model.save() }))
+            } header: {
+                Label("Updates and AI", systemImage: "arrow.triangle.2.circlepath")
+            } footer: {
+                Text("Leave the key empty and the app uses a shared one. The key is not in "
+                     + "the app - the request goes to dancykier.com, which holds it. Paste your "
+                     + "own TypeSafe key to use that instead and skip the middleman.\n\n"
+                     + "It checks for a new version once a day. Offline mode stops every call "
+                     + "out: the patterns still name most fields, and anything they cannot "
+                     + "name is offered to you instead of asked about.")
+            }
+
+            Section {
+                Text("Filling a form never sends a value anywhere. The AI is given the labels "
+                     + "printed on the page so it can say what kind of field it is, and any "
+                     + "text matching something you have stored is taken out first. Whose "
+                     + "field it is gets worked out here on this Mac; when that is not clear "
+                     + "the page shows you a list instead of guessing.\n\nThe only thing ever "
+                     + "sent is text you paste and press Extract with AI on.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } header: {
+                Label("What the AI is told", systemImage: "lock.shield")
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    private var extensionNote: String {
+        guard let seen = model.server.lastSeen else {
+            return "Never connected"
+        }
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .abbreviated
+        return "Last seen \(f.localizedString(for: seen, relativeTo: Date()))"
+    }
+}

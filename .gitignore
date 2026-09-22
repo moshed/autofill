@@ -3,15 +3,15 @@
 # committed. The hand-written Swift lives inside that generated folder, so it
 # has to be allow-listed back in.
 app/*
-!app/Autofill
-app/Autofill/*
-!app/Autofill/Autofill
-app/Autofill/Autofill/*
-!app/Autofill/Autofill/Core
-!app/Autofill/Autofill/AutofillApp.swift
-!app/Autofill/Autofill/SettingsView.swift
-!app/Autofill/Autofill/ShortcutRecorder.swift
-!app/Autofill/Autofill/Assets.xcassets
+!app/Clerk
+app/Clerk/*
+!app/Clerk/Clerk
+app/Clerk/Clerk/*
+!app/Clerk/Clerk/Core
+!app/Clerk/Clerk/ClerkApp.swift
+!app/Clerk/Clerk/SettingsView.swift
+!app/Clerk/Clerk/ShortcutRecorder.swift
+!app/Clerk/Clerk/Assets.xcassets
 
 *.app
 *.xcodeproj
