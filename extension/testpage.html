@@ -222,5 +222,54 @@
     </div>
     <p class="note">Nothing here should ever be touched.</p>
   </fieldset>
+
+  <!-- 7. a form in another language, laid out right to left -->
+  <fieldset dir="rtl" lang="he">
+    <legend>טופס בעברית — a Hebrew form</legend>
+    <p class="note">The labels, the menu and the radio buttons are all Hebrew.
+      The store holds them in English, so this checks that a country and a sex
+      are matched across languages. The first name is filled in already, which is
+      what tells Clerk whose block this is.</p>
+    <div class="row">
+      <div class="f"><label for="he1">שם פרטי:</label><input id="he1" name="name" value="Judah"></div>
+      <div class="f"><label for="he2">שם משפחה:</label><input id="he2" name="name"></div>
+      <div class="f"><label for="he3">מספר דרכון:</label><input id="he3" name="name"></div>
+    </div>
+    <div class="row">
+      <div class="f"><label for="he4">תאריך לידה:</label><input id="he4" name="name"></div>
+      <div class="f"><label for="he5">תוקף דרכון:</label><input id="he5" name="name"></div>
+      <div class="f"><label for="he6">מספר תעודת זהות:</label><input id="he6" name="name"></div>
+    </div>
+    <div class="row">
+      <div class="f"><label for="he7">אזרחות:</label>
+        <select id="he7" name="name">
+          <option value="">יש לבחור מדינה</option>
+          <option value="IL">ישראל</option>
+          <option value="US">ארצות הברית</option>
+          <option value="FR">צרפת</option>
+          <option value="GB">בריטניה</option>
+        </select>
+      </div>
+      <div class="f"><label for="he8">ארץ מגורים:</label>
+        <select id="he8" name="name">
+          <option value="">יש לבחור מדינה</option>
+          <option value="IL">ישראל</option>
+          <option value="US">ארצות הברית</option>
+          <option value="CA">קנדה</option>
+        </select>
+      </div>
+      <div class="f"><label for="he9">טלפון נייד:</label><input id="he9" name="name"></div>
+    </div>
+    <div class="row">
+      <div class="f">
+        <span>מין:</span>
+        <label><input type="radio" name="heSex" value="1"> זכר</label>
+        <label><input type="radio" name="heSex" value="0"> נקבה</label>
+      </div>
+      <div class="f"><label for="he10">כתובת אימייל:</label><input id="he10" name="name"></div>
+      <div class="f"><label for="he11">חיפוש באתר:</label><input id="he11" name="name"></div>
+    </div>
+    <p class="note">"חיפוש באתר" is a search box and must be left alone.</p>
+  </fieldset>
 </main>
 </html>

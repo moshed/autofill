@@ -977,3 +977,36 @@ label, every input `name="name"`, ids like `Text1` repeated per passenger.**
 זכר/נקבה, store holds `M`. The fix is `Intl.DisplayNames` in `content.js` -
 resolve a stored country to an ISO code, then match an option by its `value` or
 by its name in the page's own language.
+
+## Menus and radios in the page's own language
+
+`אזרחות` was classified correctly as Nationality and still came back
+"nothing matched": El Al lists countries in Hebrew ("ארצות הברית") with a
+country code as the option value, while the store holds "United States".
+
+`content.js` now asks the BROWSER rather than shipping a table.
+`Intl.DisplayNames` names every region in any language, so:
+
+- `regionCode()` turns a country written in English, Hebrew or the page's own
+  language into an ISO code, and also accepts a bare `US` or a three-letter
+  `USA`. Both sides of a comparison are resolved and the codes are compared.
+- `sexKey()` does the same small job for a sex radio whose labels are זכר and
+  נקבה while the store holds `M`. Matching is on the LABEL, never on a value
+  like `1`/`0`, which means nothing on its own.
+
+Both are tried only after an ordinary match fails, and the index is built once
+and cached.
+
+**Two limits were silently cutting pages short:**
+
+- `suggestAll(limit:)` was **60**. The test bench alone is 71 fields, so its last
+  block was never looked at - it did not appear as filled OR as skipped, which
+  is what made it look like the Hebrew section was being ignored. Now 120, the
+  same cap the content script uses for its snapshot.
+- A person block with no name in it is skipped on purpose, unless it is the only
+  one. Adding a NAMED Hebrew block to the bench therefore made the unnamed
+  traveler blocks stop filling. That is the rule working, not a bug: without a
+  name there is nothing to say whose passport number belongs there.
+
+The bench now carries a right-to-left Hebrew fieldset with a country menu, a
+sex radio and a Hebrew search box that must be refused.

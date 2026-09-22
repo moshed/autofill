@@ -618,7 +618,11 @@ enum Match {
     /// toolbar button does. Each one is worked out exactly as a single fill is,
     /// so the same rules about whose it is and which value apply.
     static func suggestAll(_ payload: FormPayload, data: StoreData, jevKey: String,
-                           allowJev: Bool = true, limit: Int = 60) async -> FillAll {
+                           allowJev: Bool = true, limit: Int = 120) async -> FillAll {
+        // 60 was too low. The test bench alone is 71 fields, and a real
+        // multi-passenger check-in page is bigger still, so the last block of
+        // the page was silently never looked at. The content script already
+        // caps its snapshot at 120; match it.
         // A block that asks for a NAME belongs to a person. Fill one only when
         // it says who: either a name is typed into it, or it is the only such
         // block. Otherwise Traveler 2 and Traveler 3 quietly fill with whoever
