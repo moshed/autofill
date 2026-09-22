@@ -48,7 +48,8 @@ enum Fields {
         FieldType(key: "given_name", label: "First name",
                   question: "the person's first or given name",
                   strong: [#"\bgiven[\s_-]?name"#, #"\bfirst[\s_-]?name"#, #"\bfname\b"#,
-                           #"\bforename"#, #"^first$"#, #"\bvorname"#],
+                           #"\bforename"#, #"^first$"#, #"\bvorname"#,
+                           #"שם פרטי"#, #"שם פרטי באנגלית"#],
                   weak: [], isName: true, group: "Name"),
         FieldType(key: "middle_name", label: "Middle name",
                   question: "the person's middle name or middle initial",
@@ -57,31 +58,39 @@ enum Fields {
         FieldType(key: "family_name", label: "Last name",
                   question: "the person's last, family or surname",
                   strong: [#"\bfamily[\s_-]?name"#, #"\blast[\s_-]?name"#, #"\bsurname"#,
-                           #"\blname\b"#, #"^last$"#, #"\bnachname"#],
+                           #"\blname\b"#, #"^last$"#, #"\bnachname"#,
+                           #"שם משפחה"#, #"שם משפחה באנגלית"#],
                   weak: [], isName: true, group: "Name"),
         FieldType(key: "full_name", label: "Full name",
                   question: "the person's whole name on one line",
                   strong: [#"\bfull[\s_-]?name"#, #"\bname[\s_-]?on[\s_-]?(card|passport|ticket)"#,
-                           #"\bpassenger[\s_-]?name"#, #"\byour[\s_-]?name"#, #"^name$"#],
-                  weak: [#"\bname\b"#], isName: true, group: "Name", derived: true),
+                           #"\bpassenger[\s_-]?name"#, #"\byour[\s_-]?name"#, #"^name$"#,
+                           #"שם מלא"#, #"שם הנוסע"#],
+                  weak: [#"\bname\b"#, #"שם"#], isName: true, group: "Name", derived: true),
         FieldType(key: "email", label: "Email", question: "an email address",
-                  strong: [#"e[\s_-]?mail"#, #"\bmail[\s_-]?address"#], weak: [], group: "Contact"),
+                  strong: [#"e[\s_-]?mail"#, #"\bmail[\s_-]?address"#,
+                           #"דואר אלקטרוני"#, #"כתובת אימייל"#, #"אימייל"#, #"דוא"ל"#], weak: [], group: "Contact"),
         FieldType(key: "phone", label: "Phone", question: "a telephone or mobile number",
-                  strong: [#"\bphone"#, #"\bmobile"#, #"\btelephone"#, #"\btel\b"#, #"\bcell\b"#],
+                  strong: [#"\bphone"#, #"\bmobile"#, #"\btelephone"#, #"\btel\b"#, #"\bcell\b"#,
+                           #"טלפון נייד"#, #"מספר טלפון"#, #"טלפון"#, #"נייד"#],
                   weak: [#"\bcontact[\s_-]?(no|num|number)"#], group: "Contact"),
         FieldType(key: "dob", label: "Date of birth", question: "the person's date of birth",
                   strong: [#"\b(date[\s_-]?of[\s_-]?birth|birth[\s_-]?date|dob)\b"#,
-                           #"\bbirthday\b"#, #"\bborn[\s_-]?on"#],
+                           #"\bbirthday\b"#, #"\bborn[\s_-]?on"#,
+                           #"תאריך לידה"#],
                   weak: [#"\bbirth\b"#, #"\bborn\b"#, #"\bdate[\s_-]?born"#], group: "Personal"),
         FieldType(key: "sex", label: "Sex", question: "the person's sex or gender",
-                  strong: [#"\bgender\b"#, #"\bsex\b"#], weak: [], group: "Personal"),
+                  strong: [#"\bgender\b"#, #"\bsex\b"#,
+                           #"מין"#], weak: [], group: "Personal"),
         FieldType(key: "nationality", label: "Nationality",
                   question: "the person's nationality or citizenship",
-                  strong: [#"\bnationality"#, #"\bcitizenship"#, #"\bcitizen[\s_-]?of"#], weak: [], group: "Personal"),
+                  strong: [#"\bnationality"#, #"\bcitizenship"#, #"\bcitizen[\s_-]?of"#,
+                           #"אזרחות"#, #"לאום"#], weak: [], group: "Personal"),
         FieldType(key: "place_of_birth", label: "Place of birth",
                   question: "the town or country where the person was born",
                   strong: [#"\b(place|city|country|town)[\s_-]?of[\s_-]?birth"#,
-                           #"\bbirth[\s_-]?(place|city|country)"#], weak: [], group: "Personal"),
+                           #"\bbirth[\s_-]?(place|city|country)"#,
+                           #"מקום לידה"#, #"ארץ לידה"#], weak: [], group: "Personal"),
 
         FieldType(key: "document_type", label: "Document type",
                   question: "which KIND of identity document this is - a passport, an identity card, a driving licence",
@@ -91,22 +100,26 @@ enum Fields {
                   weak: [], group: "Passport"),
         FieldType(key: "passport_number", label: "Passport number", question: "a passport number",
                   strong: [#"passport[\s_-]?(no|num|number|#|id)"#, #"\bppt[\s_-]?(no|num|number)"#,
-                           #"\bdocument[\s_-]?(no|num|number)"#, #"\btravel[\s_-]?doc"#],
-                  weak: [#"\bpassport\b"#, #"\bppt\b"#, #"\bpasseport\b"#, #"\bdarkon\b"#], group: "Passport"),
+                           #"\bdocument[\s_-]?(no|num|number)"#, #"\btravel[\s_-]?doc"#,
+                           #"מספר דרכון"#, #"מספר מסמך"#, #"מספר הדרכון"#],
+                  weak: [#"\bpassport\b"#, #"\bppt\b"#, #"\bpasseport\b"#, #"\bdarkon\b"#, #"דרכון"#], group: "Passport"),
         FieldType(key: "passport_country", label: "Passport country",
                   question: "the country that issued the passport",
                   strong: [#"passport[\s_-]?(country|issuing|issued|nation|state)"#,
                            #"(country|place|state)[\s_-]?of[\s_-]?issue"#,
-                           #"issuing[\s_-]?(country|authority)"#],
+                           #"issuing[\s_-]?(country|authority)"#,
+                           #"הונפק ב"#, #"ארץ הנפקה"#, #"מדינה מנפיקה"#],
                   weak: [#"\bissued[\s_-]?by"#], group: "Passport"),
         FieldType(key: "passport_issued", label: "Passport issue date",
                   question: "the date the passport was issued",
                   strong: [#"passport[\s_-]?issue"#, #"issue[\s_-]?date"#,
-                           #"date[\s_-]?of[\s_-]?issue"#], weak: [], group: "Passport"),
+                           #"date[\s_-]?of[\s_-]?issue"#,
+                           #"תאריך הנפקה"#, #"תאריך הנפקת הדרכון"#], weak: [], group: "Passport"),
         FieldType(key: "passport_expiry", label: "Passport expiry",
                   question: "the date the passport expires",
                   strong: [#"passport[\s_-]?(exp|expiry|expiration)"#, #"\bexpir\w*[\s_-]?date"#,
-                           #"valid[\s_-]?(un)?til"#, #"date[\s_-]?of[\s_-]?expir"#],
+                           #"valid[\s_-]?(un)?til"#, #"date[\s_-]?of[\s_-]?expir"#,
+                           #"תוקף דרכון"#, #"תוקף הדרכון"#, #"תאריך תוקף"#, #"בתוקף עד"#],
                   weak: [#"\bexpir"#, #"\bexp\b"#], group: "Passport"),
         FieldType(key: "eta_il", label: "ETA-IL number",
                   question: "an Israeli ETA-IL electronic travel authorisation number",
@@ -132,7 +145,8 @@ enum Fields {
                            #"mileage[\s_-]?plus"#, #"sky[\s_-]?miles"#, #"aadvantage"#,
                            #"true[\s_-]?blue"#, #"matmid"#, #"rapid[\s_-]?rewards"#,
                            #"mileage[\s_-]?plan"#, #"miles[\s_-]?(and|&)[\s_-]?more"#,
-                           #"\bavios\b"#, #"sky[\s_-]?wards"#],
+                           #"\bavios\b"#, #"sky[\s_-]?wards"#,
+                           #"הנוסע המתמיד"#, #"מספר נוסע מתמיד"#],
                   weak: [#"\bmiles\b"#], group: "Travel"),
         FieldType(key: "loyalty_number", label: "Loyalty number",
                   question: "a hotel, lounge or shop loyalty or membership number",
@@ -145,7 +159,8 @@ enum Fields {
         FieldType(key: "national_id", label: "National ID / SSN",
                   question: "a national identity or social security number",
                   strong: [#"social[\s_-]?security"#, #"\bssn\b"#, #"national[\s_-]?id"#,
-                           #"\bid[\s_-]?number"#, #"\bteudat"#],
+                           #"\bid[\s_-]?number"#, #"\bteudat"#,
+                           #"תעודת זהות"#, #"מספר תעודת זהות"#, #"ת.ז"#, #"ת"ז"#],
                   weak: [#"\bid\b"#], group: "ID"),
         FieldType(key: "drivers_license", label: "Driver's license",
                   question: "a driver's license number",
@@ -154,7 +169,8 @@ enum Fields {
         FieldType(key: "address_line1", label: "Address line 1",
                   question: "the street part of a postal address",
                   strong: [#"address[\s_-]?(line)?[\s_-]?1\b"#, #"street[\s_-]?address"#,
-                           #"\bstreet\b"#, #"^address$"#, #"\baddr1\b"#],
+                           #"\bstreet\b"#, #"^address$"#, #"\baddr1\b"#,
+                           #"כתובת מלאה"#, #"רחוב ומספר"#, #"רחוב"#, #"כתובת"#],
                   weak: [], shared: true, group: "Address"),
         FieldType(key: "address_line2", label: "Address line 2",
                   question: "the second line of a postal address, like an apartment number",
@@ -162,17 +178,20 @@ enum Fields {
                            #"\bsuite\b"#, #"\bunit\b"#, #"\baddr2\b"#],
                   weak: [], shared: true, group: "Address"),
         FieldType(key: "city", label: "City", question: "the town or city of a postal address",
-                  strong: [#"\bcity\b"#, #"\btown\b"#, #"\blocality\b"#], weak: [], shared: true, group: "Address"),
+                  strong: [#"\bcity\b"#, #"\btown\b"#, #"\blocality\b"#,
+                           #"עיר"#, #"יישוב"#], weak: [], shared: true, group: "Address"),
         FieldType(key: "state", label: "State",
                   question: "the state, province or region of a postal address",
                   strong: [#"\bstate\b"#, #"\bprovince\b"#, #"\bregion\b"#, #"\bcounty\b"#],
                   weak: [], shared: true, group: "Address"),
         FieldType(key: "postal_code", label: "ZIP / postal code",
                   question: "a postal or ZIP code",
-                  strong: [#"\bzip\b"#, #"postal[\s_-]?code"#, #"\bpostcode\b"#],
+                  strong: [#"\bzip\b"#, #"postal[\s_-]?code"#, #"\bpostcode\b"#,
+                           #"מיקוד"#],
                   weak: [#"\bpost\w*[\s_-]?code"#], shared: true, group: "Address"),
         FieldType(key: "country", label: "Country", question: "the country of a postal address",
-                  strong: [#"\bcountry\b"#], weak: [], shared: true, group: "Address"),
+                  strong: [#"\bcountry\b"#,
+                           #"ארץ מגורים"#, #"מדינת מגורים"#, #"ארץ"#, #"מדינה"#], weak: [], shared: true, group: "Address"),
 
         FieldType(key: "emergency_contact", label: "Emergency contact",
                   question: "the name of somebody to call in an emergency",
@@ -340,11 +359,51 @@ enum Fields {
     /// Everything readable on a field, lower-cased, with separators turned into
     /// spaces. `_` is a word character to the regex engine, so `\bpassport`
     /// would never match `traveler2_passport` without this.
+    /// `name="name"` and `id="Text1"` say nothing about a field, and El Al's
+    /// check-in page gives EVERY input exactly those. Read as words, "name"
+    /// matched the full-name pattern and a person's name went into the passport
+    /// box. Values this generic are thrown away.
+    static let worthlessAttr: Set<String> = [
+        "name", "text", "txt", "input", "field", "value", "val", "item", "data",
+        "q", "tb", "ctl", "control", "box", "form", "select", "option", "radio",
+        "checkbox", "button", "id", "key", "str", "string", "temp", "test", "elem",
+    ]
+
+    private static func meaningful(_ s: String?) -> String? {
+        guard let s, !s.isEmpty else { return nil }
+        // "Text1", "name_2" and "ctl00" are all the same noise once the digits
+        // and separators come off.
+        let bare = s.lowercased().replacingOccurrences(of: "[^a-z]+", with: "",
+                                                       options: .regularExpression)
+        return worthlessAttr.contains(bare) ? nil : s
+    }
+
+    private static func clean(_ parts: [String?]) -> String {
+        parts.compactMap { $0 }.filter { !$0.isEmpty }
+            .joined(separator: " ").lowercased()
+            // Keep letters of EVERY script. Stripping down to [a-z0-9] deleted
+            // Hebrew, Arabic, Chinese and Cyrillic labels completely, so no
+            // pattern in those languages could ever match - including the
+            // never-fill list, which looked tested and was not.
+            .replacingOccurrences(of: "[^\\p{L}\\p{N}]+", with: " ",
+                                  options: .regularExpression)
+    }
+
+    /// Only what a person actually reads beside the box.
+    ///
+    /// The SECTION heading is deliberately not here. It describes the whole
+    /// block, so it outranked each field's own label: under "כתובת מלאה ביעד"
+    /// (full address at destination) the City and Country boxes both came out as
+    /// Address line 1, because that heading is a longer match than "עיר". A
+    /// heading helps decide WHOSE field it is, and it is in what the AI is told,
+    /// but it must not name the field.
+    static func visibleText(_ f: FormField) -> String {
+        clean([f.label, f.ariaLabel, f.placeholder])
+    }
+
     static func haystack(_ f: FormField) -> String {
-        let parts = [f.label, f.name, f.id, f.placeholder, f.ariaLabel, f.section]
-        let joined = parts.compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " ").lowercased()
-        return joined.replacingOccurrences(of: "[^a-z0-9]+", with: " ",
-                                           options: .regularExpression)
+        clean([f.label, meaningful(f.name), meaningful(f.id),
+               f.placeholder, f.ariaLabel])
     }
 
     struct Guess { let key: String?; let confidence: Double; let why: String }
@@ -364,6 +423,20 @@ enum Fields {
             // -1 tells the caller not to bother the AI either.
             return Guess(key: nil, confidence: -1, why: "not a personal detail (/\(p)/)")
         }
+        // What a person READS beside the box beats the attributes behind it.
+        // El Al gives every input name="name", which matched the full-name
+        // pattern and put a person's name in the passport box, right beside a
+        // label that plainly said "מספר דרכון".
+        let visible = visibleText(f)
+        if !visible.trimmingCharacters(in: .whitespaces).isEmpty, visible != hay {
+            let g = classify(visible)
+            if g.key != nil { return g }
+        }
+        return classify(hay)
+    }
+
+    /// The pattern search itself, over whatever text it is handed.
+    private static func classify(_ hay: String) -> Guess {
         var hits = [(key: String, pattern: String, len: Int)]()
         for t in all {
             var best = (pattern: "", len: 0)

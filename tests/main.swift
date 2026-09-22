@@ -322,10 +322,15 @@ func checkNeverFill() async -> Int {
     print("\nnever filled")
     for (name, payload) in neverCases {
         let got = await Match.suggest(payload, data: fakeLinked, jevKey: "", allowJev: false)
-        let ok = !got.ok
+        // "left alone" is not enough. A field nothing matched is ALSO left
+        // alone, so this passed for months while the Hebrew and Chinese
+        // patterns were being deleted before they were ever tried - the
+        // haystack stripped every non-ASCII letter. Demand the RULE.
+        let byRule = (got.why ?? "").contains("not a personal detail")
+        let ok = !got.ok && byRule
         if !ok { bad += 1 }
         let n = name.padding(toLength: 44, withPad: " ", startingAt: 0)
-        print("  \(ok ? "ok   " : "WRONG") \(n) -> \(got.value ?? "left alone")")
+        print("  \(ok ? "ok   " : "WRONG") \(n) -> \(byRule ? "refused by the rule" : (got.why ?? "left alone, but NOT by the rule"))")
     }
     return bad
 }

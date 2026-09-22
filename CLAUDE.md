@@ -937,3 +937,43 @@ That silence is the tell. **`toolbar button clicked` with no
 Fix: `background.js` now injects `content.js` FIRST on every click and calls
 afterwards. `content.js` tears the old copy down and takes over, so re-injecting
 is safe and costs nothing. Existence of a global is not evidence of life.
+
+## What the real El Al page taught us
+
+Moshe saved `~/Downloads/אל על.html` from elal.com check-in. Serving it and
+clicking the real toolbar button found four bugs in one run. **Serve it, never
+open it from disk** - Safari will not run an extension on `file://`:
+
+```bash
+mkdir -p /tmp/elal && cp "/Users/moshe/Downloads/אל על.html" /tmp/elal/index.html
+cd /tmp/elal && python3 -m http.server 8899      # then open http://127.0.0.1:8899/
+```
+
+The page is a Knockout template: **no `<form>`, `<label for="">` empty on every
+label, every input `name="name"`, ids like `Text1` repeated per passenger.**
+
+1. **The matched text was stripped to `[a-z0-9]`.** Every Hebrew, Arabic,
+   Chinese and Cyrillic letter was deleted before any pattern was tried, so no
+   foreign pattern could ever match - including the never-fill list, which
+   looked tested and was not. `clean()` keeps `\p{L}\p{N}` now, and the
+   never-fill test demands the RULE fired rather than accepting "left alone",
+   which any unmatched field also produces.
+2. **`name="name"` read as a full-name field**, so the passport box was given a
+   person's NAME, beside a label that said מספר דרכון. Two fixes: the visible
+   label is classified first and the attributes are only a fallback, and
+   `worthlessAttr` throws away generic values like `name`, `Text1`, `ctl00`.
+3. **The section heading outranked the field's own label.** Under
+   "כתובת מלאה ביעד" both City and Country came out as Address line 1, because
+   the heading is a longer match than "עיר". `visibleText` and `haystack` no
+   longer include the section. It still decides WHOSE field it is, and the AI
+   still sees it.
+4. **Hebrew is now in the patterns**, not only in the AI: 19 field types carry
+   Hebrew words. That took the page from 13 of 29 to **18 of 29**, made the
+   answers certain instead of 0.5, and works with Work offline on.
+
+**Still open on that page - dropdowns and radios.** Six `<select>`s report
+"nothing matched": the options are Hebrew ("ישראל") and the store holds English
+("United States"). The sex radio is the same story: values `1`/`0`, labels
+זכר/נקבה, store holds `M`. The fix is `Intl.DisplayNames` in `content.js` -
+resolve a stored country to an ISO code, then match an option by its `value` or
+by its name in the page's own language.
