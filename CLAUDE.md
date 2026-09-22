@@ -778,6 +778,40 @@ therefore ships **no key at all**.
 - `Match.offline` stops every call out. It used to be expressed by blanking the
   key, which no longer works: empty now means "use the shared key".
 
+### A key in a shipped app CANNOT be hidden
+
+Asked on 2026-09-22: can the key ship inside the app, encrypted? No, and this is
+not a matter of trying harder. Whatever unlocks the key has to ship with it, so
+anyone holding the app holds both. Even with perfect obfuscation they can attach
+a debugger, read it out of memory, or watch the call go out. Obfuscation buys
+minutes. That is exactly why the key lives on the proxy.
+
+So the proxy is protected by bounding the damage instead:
+
+1. **Shape check** - only a System One noul call gets through.
+2. **Rate limit**, a Cloudflare rule on the zone: 6 requests per 10 seconds per
+   IP on `/clerk/ai`, then 429. Real use is about one call per form, so this is
+   several times what anybody needs. Verified by firing 14 calls: six 200s then
+   eight 429s.
+   The FREE plan allows only `period: 10` and `mitigation_timeout: 10` - any
+   other value is rejected with "not entitled to use the period 60".
+3. **Kill switch**, no deploy needed:
+   ```bash
+   npx wrangler pages secret put CLERK_AI_OFF --project-name dancykier   # "1"
+   ```
+   Everyone with their own key carries on.
+
+**What it costs if somebody does find it.** A call is about 300 tokens and Jev is
+$42 per billion, so ~$0.000013 each. One machine flat out against the rate limit
+is 51,840 calls a day, about **66 cents a day**. Many machines at once is the
+only real exposure.
+
+**Still missing: a hard daily ceiling.** It needs a KV counter, and the
+Cloudflare token in the keychain (`cloudflare_api_token`, and the `_workers` one)
+is NOT entitled to create a KV namespace - both return "Authentication error".
+Widening the token, or making `clerk-ai-budget` in the dashboard, is all that is
+in the way.
+
 ## Test bench
 
 - Local: `http://127.0.0.1:8771/test`
