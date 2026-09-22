@@ -1178,3 +1178,30 @@ Handing a value round is a separate, explicit act: `StoreData.share`, reached
 only from "Share mine with everyone" on the chain menu. Two tests hold the line -
 one that following leaves the others alone, one that sharing on purpose still
 reaches everybody.
+
+## A real app, not a background agent
+
+Clerk used to be `LSUIElement` - no Dock icon, no menu bar of its own, no place
+in the app switcher. It is a normal app now.
+
+- `INFOPLIST_KEY_LSUIElement` is gone from `tools/fix_project.py`, and
+  `applicationDidFinishLaunching` sets `NSApp.setActivationPolicy(.regular)`.
+- **Closing the window does not quit it.**
+  `applicationShouldTerminateAfterLastWindowClosed` returns false, because the
+  helper the browser talks to lives in this process - quitting it would stop
+  forms filling. Measured: closed the window, the process was still there and
+  `POST /profiles` still answered 200.
+- **Clicking the Dock icon with no window open brings the window back**, through
+  `applicationShouldHandleReopen`.
+- The status item stays as the quick way in, and `.defaultLaunchBehavior(.suppressed)`
+  still means nothing appears when the Mac starts it at login.
+
+Checked after installing:
+
+```bash
+lsappinfo list | grep -A2 '"Clerk"'                                  # type="Foreground"
+osascript -e 'tell application "System Events" to tell process "Clerk" \
+  to return name of every menu bar item of menu bar 1'               # Clerk, Edit, View, Window, Help
+osascript -e 'tell application "System Events" to tell process "Clerk" \
+  to return count of menu bar items of menu bar 2'                   # 1, the status item
+```

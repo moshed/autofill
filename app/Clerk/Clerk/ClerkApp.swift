@@ -18,7 +18,8 @@ struct ClerkApp: App {
         }
         .handlesExternalEvents(matching: ["settings"])
         .defaultSize(width: 860, height: 640)
-        // A menu-bar app should start with nothing on screen.
+        // Nothing on screen when the Mac starts it at login. Opened by hand -
+        // from the Dock, the menu bar or the browser - it shows the window.
         .defaultLaunchBehavior(.suppressed)
     }
 }
@@ -31,6 +32,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         _ = AppModel.shared
+        // A real app: a Dock icon, a menu bar of its own, and a place in the
+        // app switcher. The status item stays as the quick way in.
+        NSApp.setActivationPolicy(.regular)
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "text.cursor",
                                      accessibilityDescription: "Clerk")
@@ -38,6 +42,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         item.button?.action = #selector(clicked)
         item.button?.sendAction(on: [.leftMouseUp, .rightMouseUp])
         self.item = item
+    }
+
+    /// Closing the window does not quit. The helper the browser talks to lives
+    /// in this process, so quitting it would stop filling forms.
+    func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { false }
+
+    /// Clicking the Dock icon with no window open brings the window back.
+    func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag { openSettings() }
+        return true
     }
 
     @objc private func clicked() {

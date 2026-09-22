@@ -226,7 +226,7 @@ def main():
         b = m.group(0)
         b = b.replace("ENABLE_APP_SANDBOX = YES;", "ENABLE_APP_SANDBOX = NO;")
         b = b.replace("\t\t\t\tINFOPLIST_KEY_NSMainStoryboardFile = Main;\n",
-                      "\t\t\t\tINFOPLIST_KEY_LSUIElement = YES;\n")
+                      "")   # NOT LSUIElement: Clerk is a real app with a Dock icon
         # The converter capitalises the app's id but not the extension's, and
         # then the appex id is not prefixed by the app's - which fails the build.
         b = b.replace("PRODUCT_BUNDLE_IDENTIFIER = com.DNZ.Clerk;",
@@ -265,7 +265,7 @@ def main():
         sys.exit(f"braces unbalanced: {s.count('{')} vs {s.count('}')} - not written")
 
     open(PROJ, "w").write(s)
-    print(f"project fixed: {len(ADD)} sources added, sandbox off, LSUIElement on")
+    print(f"project fixed: {len(ADD)} sources added, sandbox off, Dock icon on")
 
 
 if __name__ == "__main__":
