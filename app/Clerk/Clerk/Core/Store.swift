@@ -227,6 +227,22 @@ struct StoreData: Codable {
     /// `from` is the person just edited, and their copy wins. Without that the
     /// last person iterated won, which meant a change was quietly reverted by
     /// somebody else's older copy of the same linked value.
+    /// Hand one value to everybody: they each get a copy that follows `owner`.
+    /// Deliberate, and only ever from the menu on the chain.
+    mutating func share(_ key: String, label: String, value: String, owner: String) {
+        for i in people.indices {
+            var mine = people[i].fields[key] ?? []
+            if let j = mine.firstIndex(where: { $0.label == label }) {
+                mine[j].value = value
+                mine[j].linked = true
+                mine[j].owner = owner
+            } else {
+                mine.append(FieldValue(label: label, value: value, linked: true, owner: owner))
+            }
+            people[i].fields[key] = mine
+        }
+    }
+
     /// Take a field off the screen and clear it everywhere. Its values would
     /// otherwise stay in the store with nothing to show them.
     mutating func forget(_ key: String) {
@@ -282,10 +298,17 @@ struct StoreData: Codable {
             for (type, familyList) in family {
                 var mine = people[i].fields[type] ?? []
                 for fv in familyList {
-                    if let j = mine.firstIndex(where: { $0.linked && $0.label == fv.label }) {
+                    // Only keep an EXISTING follower in step. Never create one.
+                    // Adding the value to everybody meant that Leon choosing to
+                    // follow Nolan's email quietly gave it to Freya too, who had
+                    // asked for nothing. Following is one person's decision, and
+                    // "share mine with everyone" is the separate, deliberate way
+                    // to hand it to the rest - see StoreData.share.
+                    if let j = mine.firstIndex(where: {
+                        $0.linked && $0.label == fv.label
+                            && ($0.owner == fv.owner || $0.owner == nil || fv.owner == nil)
+                    }) {
                         mine[j] = fv
-                    } else if !mine.contains(where: { $0.value == fv.value }) {
-                        mine.append(fv)
                     }
                 }
                 people[i].fields[type] = mine

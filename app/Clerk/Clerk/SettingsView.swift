@@ -211,6 +211,11 @@ private struct PersonEditor: View {
                                               model.data.person(id)?.displayName ?? id
                                           },
                                           othersWith: { others(holding: t.key) },
+                                          shareAll: { label, value in
+                                              model.data.share(t.key, label: label,
+                                                               value: value, owner: person.id)
+                                              model.save(editing: person.id)
+                                          },
                                           save: { model.save(editing: person.id) })
                                 .contextMenu {
                                     Button("Rename \u{201C}\(t.label)\u{201D}\u{2026}") {
@@ -356,6 +361,8 @@ private struct FieldRows: View {
     let nameOf: (String) -> String
     /// Everybody else who already has something in this field.
     let othersWith: () -> [(id: String, name: String, value: String)]
+    /// Hand this value to everybody. Only ever from the chain menu.
+    let shareAll: (String, String) -> Void
     let save: () -> Void
 
     /// Rows being nudged because somebody tried to type in a locked box.
@@ -509,13 +516,9 @@ private struct FieldRows: View {
 
     /// Hand this value to everybody, and keep the main copy here.
     private func shareMine(_ i: Int) {
-        var r = rows
-        guard r.indices.contains(i) else { return }
-        r[i].linked = true
-        r[i].owner = personID
+        guard rows.indices.contains(i) else { return }
         complaint = nil
-        list = r
-        save()
+        shareAll(rows[i].label, rows[i].value)
     }
 
     /// Keep what is here, stop following anyone.

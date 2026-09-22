@@ -1141,7 +1141,8 @@ Pressing the chain no longer toggles a flag. It opens a menu:
   linked, and records THEM as the owner. From then on this box is greyed out
   here and changes when theirs does.
 - **Share mine with everyone** - this person keeps the main copy and everybody
-  else follows it.
+  else follows it. This is the ONLY thing that touches other people, and it is a
+  deliberate choice from the menu.
 - On a copy you are following: **Stop following \<name\>**. You keep what is
   there and go your own way.
 - On a copy you own: **Stop sharing this with everyone**.
@@ -1163,3 +1164,17 @@ Right-click any field's rows.
 
 `StoreData.fieldLabels` holds the renames and `Fields.register(_:renamed:)`
 applies them to built-in and custom fields alike.
+
+
+### Following one person must not drag in the rest
+
+Caught by Moshe on 2026-09-22 - "does linking one auto link everyone? that's
+nonsensical" - and he was right. `propagateLinked` used to APPEND a linked value
+to every person who did not already have one, so Leon choosing to follow Nolan's
+email quietly gave it to Freya, who had asked for nothing.
+
+It now only keeps an **existing** follower in step and never creates one.
+Handing a value round is a separate, explicit act: `StoreData.share`, reached
+only from "Share mine with everyone" on the chain menu. Two tests hold the line -
+one that following leaves the others alone, one that sharing on purpose still
+reaches everybody.

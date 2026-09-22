@@ -559,6 +559,30 @@ func checkLinking() -> Int {
     let ok = judahEmail != "private@example.com"
     if !ok { bad += 1 }
     print("  \(ok ? "ok   " : "WRONG") an unlinked email did not spread -> \(judahEmail ?? "none")")
+    // Following ONE person must not drag everybody else in. "Follow Nolan" on
+    // Leon is about Leon; Freya never asked for anything.
+    var f = fake                                   // nobody linked to start with
+    if let j = f.people.firstIndex(where: { $0.id == "leon" }) {
+        f.people[j].fields["email"] = [FieldValue(label: "", value: "nolan@example.com",
+                                                  linked: true, owner: "nolan")]
+    }
+    f.propagateLinked(from: "leon")
+    let freyaGot = f.people.first(where: { $0.id == "freya" })?.values("email") ?? []
+    let okOnlyMe = freyaGot.isEmpty
+    if !okOnlyMe { bad += 1 }
+    print("  \(okOnlyMe ? "ok   " : "WRONG") following one person left the others alone -> \(freyaGot.map(\.value).joined(separator: ", ").isEmpty ? "nothing" : freyaGot.map(\.value).joined(separator: ", "))")
+
+    // "Share mine with everyone" is the deliberate way to hand it round, and it
+    // must still work.
+    var sh = fake
+    sh.share("email", label: "", value: "nolan@example.com", owner: "nolan")
+    sh.propagateLinked(from: "nolan")
+    let everyone = sh.people.allSatisfy { p in
+        p.values("email").contains { $0.value == "nolan@example.com" && $0.owner == "nolan" }
+    }
+    if !everyone { bad += 1 }
+    print("  \(everyone ? "ok   " : "WRONG") sharing on purpose reached everybody -> \(everyone)")
+
     // The OWNER's copy wins, whoever was edited last. Without that, an echo of
     // a shared value could quietly overwrite the real one.
     var o = fakeLinked
