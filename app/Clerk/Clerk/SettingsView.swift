@@ -172,11 +172,18 @@ private struct PersonEditor: View {
     let index: Int
     let onAddField: () -> Void
 
+    @State private var renaming: String?
+    @State private var renameTo = ""
+    @State private var removing: FieldType?
+
     private var person: Person { model.data.people[index] }
 
     private var groups: [(String, [FieldType])] {
         // Derived fields are filled on a form but never typed in here.
-        let byGroup = Dictionary(grouping: Fields.all.filter { !$0.derived }, by: \.group)
+        let hidden = Set(model.data.hiddenFields)
+        let byGroup = Dictionary(grouping: Fields.all.filter {
+            !$0.derived && !hidden.contains($0.key)
+        }, by: \.group)
         let known = FieldGroup.order.compactMap { g -> (String, [FieldType])? in
             guard let list = byGroup[g], !list.isEmpty else { return nil }
             return (g, list)
@@ -202,7 +209,18 @@ private struct PersonEditor: View {
                                           personID: person.id,
                                           nameOf: { id in
                                               model.data.person(id)?.displayName ?? id
-                                          })
+                                          },
+                                          othersWith: { others(holding: t.key) },
+                                          save: { model.save(editing: person.id) })
+                                .contextMenu {
+                                    Button("Rename \u{201C}\(t.label)\u{201D}\u{2026}") {
+                                        renaming = t.key
+                                        renameTo = t.label
+                                    }
+                                    Button("Remove \u{201C}\(t.label)\u{201D}", role: .destructive) {
+                                        removing = t
+                                    }
+                                }
                             }
                         }
                     }
@@ -212,6 +230,30 @@ private struct PersonEditor: View {
                     Label("Add a field", systemImage: "plus.circle")
                 }
                 .buttonStyle(.link)
+                .alert("Rename this field", isPresented: Binding(
+                    get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
+                    TextField("Name", text: $renameTo)
+                    Button("Rename", action: applyRename)
+                    Button("Cancel", role: .cancel) { renaming = nil }
+                } message: {
+                    Text("Only the name changes. Everything already in this field stays.")
+                }
+                .confirmationDialog(
+                    removing.map { "Remove \u{201C}\($0.label)\u{201D}?" } ?? "",
+                    isPresented: Binding(get: { removing != nil },
+                                         set: { if !$0 { removing = nil } }),
+                    titleVisibility: .visible) {
+                    Button("Remove and clear it for everyone", role: .destructive) {
+                        if let t = removing {
+                            model.data.forget(t.key)
+                            model.save(editing: person.id)
+                        }
+                        removing = nil
+                    }
+                    Button("Keep it", role: .cancel) { removing = nil }
+                } message: {
+                    Text("It disappears from everyone, and whatever is in it is cleared.")
+                }
 
                 Divider()
                 HStack {
@@ -260,6 +302,29 @@ private struct PersonEditor: View {
                 })
     }
 
+    /// Everybody else who already has something in this field, so linking can
+    /// say WHOSE value to follow rather than just "share this".
+    private func others(holding key: String) -> [(id: String, name: String, value: String)] {
+        model.data.people.compactMap { p in
+            guard p.id != person.id,
+                  let v = (p.fields[key] ?? []).first(where: { !$0.value.isEmpty })
+            else { return nil }
+            return (p.id, p.displayName, v.value)
+        }
+    }
+
+    private func applyRename() {
+        guard let key = renaming else { return }
+        let name = renameTo.trimmingCharacters(in: .whitespaces)
+        renaming = nil
+        guard !name.isEmpty else { return }
+        if let i = model.data.customFields.firstIndex(where: { $0.key == key }) {
+            model.data.customFields[i].label = name      // a custom field owns its name
+        }
+        model.data.fieldLabels[key] = name
+        model.save(editing: person.id)
+    }
+
     private func makeDefault() {
         let id = person.id
         for i in model.data.people.indices {
@@ -289,6 +354,9 @@ private struct FieldRows: View {
     @Binding var list: [FieldValue]
     let personID: String
     let nameOf: (String) -> String
+    /// Everybody else who already has something in this field.
+    let othersWith: () -> [(id: String, name: String, value: String)]
+    let save: () -> Void
 
     /// Rows being nudged because somebody tried to type in a locked box.
     @State private var shakes = [Int: CGFloat]()
@@ -341,13 +409,34 @@ private struct FieldRows: View {
                         }
                     }
 
-                    Button { toggleLink(i) } label: {
+                    Menu {
+                        if let owner = lockedBy(i) {
+                            Button("Stop following \(nameOf(owner))") { unlink(i) }
+                        } else if v.linked {
+                            Button("Stop sharing this with everyone") { unlink(i) }
+                        } else {
+                            let others = othersWith()
+                            if others.isEmpty {
+                                Text("Nobody else has a \(type.label.lowercased()) yet")
+                            } else {
+                                ForEach(others, id: \.id) { o in
+                                    Button("Follow \(o.name) — \(o.value)") {
+                                        follow(i, owner: o.id, value: o.value)
+                                    }
+                                }
+                                Divider()
+                            }
+                            Button("Share mine with everyone") { shareMine(i) }
+                        }
+                    } label: {
                         Image(systemName: lockedBy(i) != nil ? "link.circle.fill" : "link")
                             .foregroundStyle(v.linked ? Color.accentColor
                                                       : Color.secondary.opacity(0.35))
                     }
-                    .buttonStyle(.borderless)
-                    .disabled(v.value.isEmpty)
+                    .menuStyle(.borderlessButton)
+                    .menuIndicator(.hidden)
+                    .frame(width: 22)
+                    .disabled(v.value.isEmpty && othersWith().isEmpty)
                     .help(linkHelp(i))
 
                     if i == rows.count - 1 {
@@ -406,22 +495,38 @@ private struct FieldRows: View {
         return owner
     }
 
-    private func toggleLink(_ i: Int) {
+    /// Follow somebody else's value. This copy becomes a read-only echo of it.
+    private func follow(_ i: Int, owner: String, value: String) {
         var r = rows
-        if let owner = lockedBy(i) {
-            // Unlink: take a copy of your own and stop following theirs.
-            _ = owner
-            r[i].linked = false
-            r[i].owner = nil
-        } else if r[i].linked {
-            r[i].linked = false
-            r[i].owner = nil
-        } else {
-            r[i].linked = true
-            r[i].owner = personID          // whoever links it holds the main copy
-        }
+        guard r.indices.contains(i) else { return }
+        r[i].value = value
+        r[i].linked = true
+        r[i].owner = owner
         complaint = nil
         list = r
+        save()
+    }
+
+    /// Hand this value to everybody, and keep the main copy here.
+    private func shareMine(_ i: Int) {
+        var r = rows
+        guard r.indices.contains(i) else { return }
+        r[i].linked = true
+        r[i].owner = personID
+        complaint = nil
+        list = r
+        save()
+    }
+
+    /// Keep what is here, stop following anyone.
+    private func unlink(_ i: Int) {
+        var r = rows
+        guard r.indices.contains(i) else { return }
+        r[i].linked = false
+        r[i].owner = nil
+        complaint = nil
+        list = r
+        save()
     }
 
     private func bindLabel(_ i: Int) -> Binding<String> {

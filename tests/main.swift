@@ -412,6 +412,42 @@ func checkDates() -> Int {
     return bad
 }
 
+
+// --- renaming and removing a field ---------------------------------------
+
+func checkFieldEditing() -> Int {
+    var bad = 0
+    print("\nrenaming and removing a field")
+
+    // Renaming changes the NAME, never the key, so the value survives.
+    var d = fakeLinked
+    d.fieldLabels["passport_number"] = "Passport no."
+    Fields.register(d.customFields, renamed: d.fieldLabels)
+    let renamed = Fields.all.first { $0.key == "passport_number" }?.label ?? "?"
+    let kept = d.people.first(where: { $0.id == "leon" })?.text("passport_number") ?? ""
+    let ok1 = renamed == "Passport no." && kept == "J22222222"
+    if !ok1 { bad += 1 }
+    print("  \(ok1 ? "ok   " : "WRONG") renamed, value kept -> \(renamed) / \(kept)")
+
+    // A renamed field still fills.
+    Fields.register(d.customFields, renamed: d.fieldLabels)
+    let guessed = Fields.guessType(FormField(label: "Passport number", name: "p")).key
+    let ok2 = guessed == "passport_number"
+    if !ok2 { bad += 1 }
+    print("  \(ok2 ? "ok   " : "WRONG") a renamed field still matches -> \(guessed ?? "nothing")")
+
+    // Removing clears it for everybody and takes it off the screen.
+    d.forget("passport_number")
+    let anyLeft = d.people.contains { !($0.values("passport_number").isEmpty) }
+    let hidden = d.hiddenFields.contains("passport_number")
+    let ok3 = !anyLeft && hidden
+    if !ok3 { bad += 1 }
+    print("  \(ok3 ? "ok   " : "WRONG") removed everywhere and hidden -> values left: \(anyLeft), hidden: \(hidden)")
+
+    Fields.register([], renamed: [:])          // put the vocabulary back
+    return bad
+}
+
 func checkNeverFill() async -> Int {
     var bad = 0
     print("\nnever filled")
@@ -584,6 +620,7 @@ Task {
     failures += await checkNeverFill()
     failures += await checkPages()
     failures += checkDates()
+    failures += checkFieldEditing()
     print("\n\(failures == 0 ? "all good" : "\(failures) failures")")
     sema.signal()
 }

@@ -60,7 +60,7 @@ func walk(_ e: AXUIElement, _ depth: Int) {
     case "click":
         // Tabs and toggles are pressable too. An icon-only tab reports the
         // SF Symbol name, e.g. the Setup tab is "Gear Shape".
-        if ["AXButton", "AXRadioButton", "AXCheckBox", "AXPopUpButton"].contains(role),
+        if ["AXButton", "AXRadioButton", "AXCheckBox", "AXPopUpButton", "AXMenuButton"].contains(role),
            n.localizedCaseInsensitiveContains(want) {
             AXUIElementPerformAction(e, kAXPressAction as CFString)
             print("clicked: \(n)"); done = true; return

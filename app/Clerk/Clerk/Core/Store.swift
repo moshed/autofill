@@ -144,12 +144,21 @@ struct StoreData: Codable {
     /// dialog that blocks the app before it can even listen.
     var jevKey: String = ""
     var customFields: [CustomField] = []
+    /// Field types taken off the screen. A built-in cannot really be deleted -
+    /// it is part of the vocabulary that reads a form - but it can be hidden, and
+    /// hiding it also clears whatever was in it. Unhiding brings the empty field
+    /// back, not the old value.
+    var hiddenFields: [String] = []
+    /// A better name for a field, in Moshe's words. The key never changes, so
+    /// renaming one keeps every value that is already in it.
+    var fieldLabels: [String: String] = [:]
     /// Never call out at all. The patterns still name most fields; anything they
     /// cannot name is offered rather than guessed.
     var offline: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case people, shared, shortcut, jevKey, customFields, offline
+        case hiddenFields, fieldLabels
     }
 
     init(people: [Person] = [], shared: [String: [FieldValue]] = [:],
@@ -177,7 +186,9 @@ struct StoreData: Codable {
         jevKey = try c.decodeIfPresent(String.self, forKey: .jevKey) ?? ""
         customFields = try c.decodeIfPresent([CustomField].self, forKey: .customFields) ?? []
         offline = try c.decodeIfPresent(Bool.self, forKey: .offline) ?? false
-        Fields.register(customFields)
+        hiddenFields = try c.decodeIfPresent([String].self, forKey: .hiddenFields) ?? []
+        fieldLabels = try c.decodeIfPresent([String: String].self, forKey: .fieldLabels) ?? [:]
+        Fields.register(customFields, renamed: fieldLabels)
     }
 
     func person(_ id: String) -> Person? { people.first { $0.id == id } }
@@ -216,6 +227,15 @@ struct StoreData: Codable {
     /// `from` is the person just edited, and their copy wins. Without that the
     /// last person iterated won, which meant a change was quietly reverted by
     /// somebody else's older copy of the same linked value.
+    /// Take a field off the screen and clear it everywhere. Its values would
+    /// otherwise stay in the store with nothing to show them.
+    mutating func forget(_ key: String) {
+        for i in people.indices { people[i].fields[key] = nil }
+        customFields.removeAll { $0.key == key }
+        fieldLabels[key] = nil
+        if Fields.isBuiltin(key), !hiddenFields.contains(key) { hiddenFields.append(key) }
+    }
+
     mutating func propagateLinked(from source: String? = nil) {
         // Which copy of a linked value wins. The OWNER's, if it has one - that
         // is the whole point of naming an owner, and it is why everybody else's
@@ -368,7 +388,7 @@ enum Store {
         guard let data = keychainRead(service: service, account: account),
               let decoded = try? JSONDecoder().decode(StoreData.self, from: data)
         else { return StoreData() }
-        Fields.register(decoded.customFields)
+        Fields.register(decoded.customFields, renamed: decoded.fieldLabels)
         var out = decoded
         out.migrateShared()
         return out

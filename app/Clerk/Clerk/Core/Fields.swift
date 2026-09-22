@@ -5,7 +5,7 @@ import Foundation
 /// about a field the patterns cannot settle.
 struct FieldType: Identifiable {
     let key: String
-    let label: String        // shown to Nolan
+    var label: String        // shown to Moshe, and he may rename it
     let question: String     // the tail of the yes/no question Jev is asked
     let strong: [String]     // tried first
     let weak: [String]       // tried only when no strong pattern matched anything
@@ -236,12 +236,26 @@ enum Fields {
     /// Fields Nolan added himself. Registered from the store when it loads, so
     /// a custom field behaves like a built-in one everywhere.
     private(set) static var extra: [FieldType] = []
+    /// A field's name as Moshe wrote it, keyed by the key that never changes.
+    private(set) static var labelOverrides: [String: String] = [:]
     private(set) static var byKey: [String: FieldType] =
         Dictionary(uniqueKeysWithValues: builtin.map { ($0.key, $0) })
 
-    static var all: [FieldType] { builtin + extra }
+    static var all: [FieldType] {
+        (builtin + extra).map { t in
+            guard let name = labelOverrides[t.key], !name.isEmpty else { return t }
+            var x = t
+            x.label = name
+            return x
+        }
+    }
 
-    static func register(_ custom: [CustomField]) {
+    static func isBuiltin(_ key: String) -> Bool { builtin.contains { $0.key == key } }
+
+    /// `renamed` lets a field be called whatever Moshe calls it. The KEY never
+    /// changes, so every value already stored in it survives the rename.
+    static func register(_ custom: [CustomField], renamed: [String: String] = [:]) {
+        labelOverrides = renamed
         extra = custom.map { c in
             // The label is the pattern: "Visa number" matches "visa number",
             // "visa_number", "Visa No." and so on.
@@ -251,7 +265,7 @@ enum Fields {
             let pattern = words.isEmpty ? NSRegularExpression.escapedPattern(for: c.key)
                 : "\\b" + words.map { NSRegularExpression.escapedPattern(for: $0) }
                     .joined(separator: "[\\s_-]?")
-            return FieldType(key: c.key, label: c.label,
+            return FieldType(key: c.key, label: renamed[c.key] ?? c.label,
                              question: "the person's \(c.label.lowercased())",
                              strong: [pattern], weak: [],
                              shared: c.shared, isName: false, group: c.group)

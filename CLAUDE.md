@@ -1131,3 +1131,35 @@ it behaves the old way: editable anywhere, and the person just edited wins.
 `tools/ui` gained `select`, because a sidebar row is an `AXRow` holding static
 text rather than a button, so it is chosen by setting `AXSelected` rather than
 by pressing it.
+
+## The chain asks WHO to follow
+
+Pressing the chain no longer toggles a flag. It opens a menu:
+
+- **Follow \<name\> — \<their value\>**, one line per person who already has
+  something in this field. Choosing one copies their value in, marks this copy
+  linked, and records THEM as the owner. From then on this box is greyed out
+  here and changes when theirs does.
+- **Share mine with everyone** - this person keeps the main copy and everybody
+  else follows it.
+- On a copy you are following: **Stop following \<name\>**. You keep what is
+  there and go your own way.
+- On a copy you own: **Stop sharing this with everyone**.
+
+## Renaming and removing a field
+
+Right-click any field's rows.
+
+- **Rename** changes only the NAME. The key never moves, so everything already
+  stored in it survives, and the form matching is unaffected - there is a test
+  that renames Passport number to "Passport no." and checks a form field labelled
+  "Passport number" still matches.
+- **Remove** clears the field for everybody and takes it off the screen.
+  `StoreData.forget(key)` drops the values, removes a custom field outright, and
+  puts a built-in on `hiddenFields` - a built-in cannot really be deleted,
+  because it is part of the vocabulary that reads a form. Unhiding brings the
+  empty field back, not the old value, and the question asked before removing
+  says so.
+
+`StoreData.fieldLabels` holds the renames and `Fields.register(_:renamed:)`
+applies them to built-in and custom fields alike.
