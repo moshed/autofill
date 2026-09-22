@@ -171,7 +171,11 @@ enum Fields {
                   strong: [#"address[\s_-]?(line)?[\s_-]?1\b"#, #"street[\s_-]?address"#,
                            #"\bstreet\b"#, #"^address$"#, #"\baddr1\b"#,
                            #"כתובת מלאה"#, #"רחוב ומספר"#, #"רחוב"#, #"כתובת"#],
-                  weak: [], shared: true, group: "Address"),
+                  // A box called simply "address" is the street line. Chrome's
+                  // own autofill test page has exactly that, with a useless
+                  // label, and it was not recognised at all. Weak, so "email
+                  // address" and "address line 2" still win.
+                  weak: [#"\baddress\b"#], shared: true, group: "Address"),
         FieldType(key: "address_line2", label: "Address line 2",
                   question: "the second line of a postal address, like an apartment number",
                   strong: [#"address[\s_-]?(line)?[\s_-]?2\b"#, #"\bapt\b"#, #"\bapartment"#,

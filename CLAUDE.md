@@ -1010,3 +1010,53 @@ and cached.
 
 The bench now carries a right-to-left Hebrew fieldset with a country menu, a
 sex radio and a Hebrew search box that must be refused.
+
+## Real pages from the web are part of the local suite
+
+Five public form-filling test pages are checked offline on every run. **No
+browser is opened and nothing is submitted** - the pages are fetched once, the
+field shapes are read out, and the cases live in `tests/pages/*.json`.
+
+| page | fields | checked |
+|---|---|---|
+| fill.dev identity | 13 | 11 |
+| fill.dev credit card | 8 | 6 |
+| roboform all fields | 39 | 28 |
+| Chrome's own autofill page | 44 | 28 |
+| formy | 8 | 7 |
+
+```bash
+tools/webtest/extract.py page.html          # what the extension would see
+tools/webtest/make_cases.py                 # refetch and rebuild tests/pages
+./tests/run.sh                              # runs them with the rest
+```
+
+**The expectations are written by hand from the label printed on the page, never
+from what Clerk answers**, so a wrong answer stays wrong. Anything genuinely
+ambiguous is left out rather than forced.
+
+First run: **74 of 79**. Two real findings, both fixed:
+
+- **A box called simply `address` was not recognised at all.** Chrome's page has
+  `<input name="address">` under a useless label. `^address$` could not match
+  because the haystack also holds the label. A weak `\baddress\b` now does it,
+  and "email address" and "address line 2" still win on specificity.
+- **"Name on card" is refused**, because the input is `cc-name` and `cc[\s_-]?name`
+  is on the never-fill list. That is deliberate and it stays: the name itself is
+  harmless, but refusing is never the wrong way to be wrong next to a payment
+  card. The expectation was corrected, not the rule.
+
+**Chrome's page is the test that matters for the attribute fallback** - every
+label on it is a section title, so the `name` attribute is the only signal.
+
+## Do not drive Safari to test
+
+Tried on 2026-09-22 and it went wrong: `window 1` and `front window` in System
+Events do not reliably mean the window AppleScript just opened, and a click
+meant for a local test page **landed on Moshe's live El Al check-in tab and
+filled 25 fields on it**. Nothing was submitted, and a reload cleared it, but it
+should never have been possible.
+
+Test the matcher offline against saved pages instead. When the browser genuinely
+has to be exercised, ask Moshe to press the button and read
+`~/Library/Logs/Clerk.log` afterwards.

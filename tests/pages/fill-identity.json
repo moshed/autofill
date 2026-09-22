@@ -1,0 +1,163 @@
+{
+ "name": "fill-identity",
+ "url": "https://fill.dev/identity",
+ "title": "fill-identity",
+ "fields": [
+  {
+   "label": "Link to this scenario",
+   "name": "",
+   "id": "scenario-link",
+   "placeholder": "",
+   "autocomplete": "",
+   "aria_label": "Link to this scenario",
+   "input_type": "text",
+   "section": "Multi-step pages",
+   "group": "grp1"
+  },
+  {
+   "label": "First name",
+   "name": "given-name",
+   "id": "given-name",
+   "placeholder": "",
+   "autocomplete": "given-name",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Middle name",
+   "name": "additional-name",
+   "id": "additional-name",
+   "placeholder": "",
+   "autocomplete": "additional-name",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Last name",
+   "name": "family-name",
+   "id": "family-name",
+   "placeholder": "",
+   "autocomplete": "family-name",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Email",
+   "name": "email",
+   "id": "email",
+   "placeholder": "",
+   "autocomplete": "email",
+   "aria_label": "",
+   "input_type": "email",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Phone number",
+   "name": "tel",
+   "id": "tel",
+   "placeholder": "",
+   "autocomplete": "tel",
+   "aria_label": "",
+   "input_type": "tel",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Street address",
+   "name": "address-line1",
+   "id": "address-line1",
+   "placeholder": "",
+   "autocomplete": "address-line1",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Street address line 2",
+   "name": "address-line2",
+   "id": "address-line2",
+   "placeholder": "",
+   "autocomplete": "address-line2",
+   "aria_label": "Street address line 2",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "City",
+   "name": "address-level2",
+   "id": "address-level2",
+   "placeholder": "",
+   "autocomplete": "address-level2",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "State or province",
+   "name": "address-level1",
+   "id": "address-level1",
+   "placeholder": "",
+   "autocomplete": "address-level1",
+   "aria_label": "",
+   "input_type": "select-one",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "ZIP or postal code",
+   "name": "postal-code",
+   "id": "postal-code",
+   "placeholder": "",
+   "autocomplete": "postal-code",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "Country",
+   "name": "country",
+   "id": "country",
+   "placeholder": "",
+   "autocomplete": "country",
+   "aria_label": "",
+   "input_type": "select-one",
+   "section": "Fields",
+   "group": "grp2"
+  },
+  {
+   "label": "",
+   "name": "",
+   "id": "",
+   "placeholder": "Search pages, categories or autocomplete tokens…",
+   "autocomplete": "off",
+   "aria_label": "",
+   "input_type": "search",
+   "section": "Scenarios",
+   "group": "grp3"
+  }
+ ],
+ "expect": {
+  "1": "given_name",
+  "2": "middle_name",
+  "3": "family_name",
+  "4": "email",
+  "5": "phone",
+  "6": "address_line1",
+  "7": "address_line2",
+  "8": "city",
+  "9": "state",
+  "10": "postal_code",
+  "11": "country"
+ }
+}

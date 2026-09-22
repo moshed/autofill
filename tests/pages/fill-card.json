@@ -1,0 +1,103 @@
+{
+ "name": "fill-card",
+ "url": "https://fill.dev/credit-card",
+ "title": "fill-card",
+ "fields": [
+  {
+   "label": "Link to this scenario",
+   "name": "",
+   "id": "scenario-link",
+   "placeholder": "",
+   "autocomplete": "",
+   "aria_label": "Link to this scenario",
+   "input_type": "text",
+   "section": "Container",
+   "group": "grp1"
+  },
+  {
+   "label": "Name on card",
+   "name": "cc-name",
+   "id": "cc-name",
+   "placeholder": "",
+   "autocomplete": "cc-name",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Expiry",
+   "group": "grp2"
+  },
+  {
+   "label": "Type",
+   "name": "cc-type",
+   "id": "cc-type",
+   "placeholder": "",
+   "autocomplete": "cc-type",
+   "aria_label": "",
+   "input_type": "select-one",
+   "section": "Expiry",
+   "group": "grp2"
+  },
+  {
+   "label": "Card number",
+   "name": "cc-number",
+   "id": "cc-number",
+   "placeholder": "",
+   "autocomplete": "cc-number",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Expiry",
+   "group": "grp2"
+  },
+  {
+   "label": "Expiry month",
+   "name": "cc-exp-month",
+   "id": "cc-exp-month",
+   "placeholder": "",
+   "autocomplete": "cc-exp-month",
+   "aria_label": "",
+   "input_type": "select-one",
+   "section": "Expiry",
+   "group": "grp2"
+  },
+  {
+   "label": "Expiry year",
+   "name": "cc-exp-year",
+   "id": "cc-exp-year",
+   "placeholder": "",
+   "autocomplete": "cc-exp-year",
+   "aria_label": "",
+   "input_type": "select-one",
+   "section": "Expiry",
+   "group": "grp2"
+  },
+  {
+   "label": "CVV",
+   "name": "cc-csc",
+   "id": "cc-csc",
+   "placeholder": "",
+   "autocomplete": "cc-csc",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Expiry",
+   "group": "grp2"
+  },
+  {
+   "label": "",
+   "name": "",
+   "id": "",
+   "placeholder": "Search pages, categories or autocomplete tokens…",
+   "autocomplete": "off",
+   "aria_label": "",
+   "input_type": "search",
+   "section": "Scenarios",
+   "group": "grp3"
+  }
+ ],
+ "expect": {
+  "1": "refused",
+  "2": "refused",
+  "3": "refused",
+  "4": "refused",
+  "5": "refused",
+  "6": "refused"
+ }
+}

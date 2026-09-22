@@ -1,0 +1,104 @@
+{
+ "name": "formy",
+ "url": "https://formy-project.herokuapp.com/form",
+ "title": "formy",
+ "fields": [
+  {
+   "label": "First name",
+   "name": "",
+   "id": "first-name",
+   "placeholder": "Enter first name",
+   "autocomplete": "",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Last name",
+   "name": "",
+   "id": "last-name",
+   "placeholder": "Enter last name",
+   "autocomplete": "",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Job title",
+   "name": "",
+   "id": "job-title",
+   "placeholder": "Enter your job title",
+   "autocomplete": "",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Radio button",
+   "name": "",
+   "id": "radio-button-1",
+   "placeholder": "",
+   "autocomplete": "",
+   "aria_label": "Radio button",
+   "input_type": "radio",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Radio button",
+   "name": "",
+   "id": "radio-button-2",
+   "placeholder": "",
+   "autocomplete": "",
+   "aria_label": "Radio button",
+   "input_type": "radio",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Radio button",
+   "name": "",
+   "id": "radio-button-3",
+   "placeholder": "",
+   "autocomplete": "",
+   "aria_label": "Radio button",
+   "input_type": "radio",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Years of experience:",
+   "name": "",
+   "id": "select-menu",
+   "placeholder": "",
+   "autocomplete": "",
+   "aria_label": "",
+   "input_type": "select-one",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  },
+  {
+   "label": "Date",
+   "name": "",
+   "id": "datepicker",
+   "placeholder": "mm/dd/yyyy",
+   "autocomplete": "",
+   "aria_label": "",
+   "input_type": "text",
+   "section": "Complete Web Form",
+   "group": "grp1"
+  }
+ ],
+ "expect": {
+  "0": "given_name",
+  "1": "family_name",
+  "2": "job_title",
+  "3": "refused",
+  "4": "refused",
+  "5": "refused",
+  "6": "refused"
+ }
+}

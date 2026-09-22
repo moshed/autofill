@@ -317,6 +317,61 @@ let neverCases: [(String, FormPayload)] = [
         field("Kreditkarte", name: "kk", current: true)])),
 ]
 
+
+// --- real pages from the web ---------------------------------------------
+//
+// Field shapes taken off five public form-filling test pages with
+// tools/webtest/extract.py, then saved in tests/pages. The expectations were
+// written by hand from the label printed on the page, NOT from what Clerk
+// answers, so a wrong answer stays wrong.
+//
+// Patterns only. These pages are in plain English, so anything that needs the
+// AI here is a gap in the vocabulary worth seeing.
+
+struct PageCase: Decodable {
+    let name: String
+    let url: String
+    let title: String
+    let fields: [FormField]
+    let expect: [String: String]
+}
+
+func checkPages() async -> Int {
+    var bad = 0
+    let here = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        .appendingPathComponent("pages")
+    let files = ((try? FileManager.default.contentsOfDirectory(atPath: here.path)) ?? [])
+        .filter { $0.hasSuffix(".json") }.sorted()
+    guard !files.isEmpty else { return 0 }
+
+    print("\nreal pages from the web")
+    for file in files {
+        guard let blob = try? Data(contentsOf: here.appendingPathComponent(file)),
+              let page = try? JSONDecoder().decode(PageCase.self, from: blob) else {
+            print("  could not read \(file)"); bad += 1; continue
+        }
+        var wrong = [String]()
+        for (idx, want) in page.expect.sorted(by: { Int($0.key)! < Int($1.key)! }) {
+            guard let i = Int(idx), i < page.fields.count else { continue }
+            var fields = page.fields
+            fields[i].current = true
+            let payload = FormPayload(url: page.url, title: page.title, fields: fields)
+            let got = await Match.suggest(payload, data: fakeLinked, jevKey: "", allowJev: false)
+            let label = fields[i].label ?? fields[i].name ?? "?"
+            if want == "refused" {
+                if got.value != nil { wrong.append("\(label): filled, must not be") }
+            } else if got.type != want {
+                wrong.append("\(label): \(got.type ?? got.error ?? "nothing"), wanted \(want)")
+            }
+        }
+        let n = page.name.padding(toLength: 18, withPad: " ", startingAt: 0)
+        print("  \(wrong.isEmpty ? "ok   " : "WRONG") \(n) \(page.expect.count - wrong.count) of \(page.expect.count) right")
+        for w in wrong { print("        \(w)") }
+        bad += wrong.count
+    }
+    return bad
+}
+
 func checkNeverFill() async -> Int {
     var bad = 0
     print("\nnever filled")
@@ -461,6 +516,7 @@ Task {
     failures += await checkNoOffers()
     failures += checkLinking()
     failures += await checkNeverFill()
+    failures += await checkPages()
     print("\n\(failures == 0 ? "all good" : "\(failures) failures")")
     sema.signal()
 }
