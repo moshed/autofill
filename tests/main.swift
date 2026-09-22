@@ -523,6 +523,32 @@ func checkLinking() -> Int {
     let ok = judahEmail != "private@example.com"
     if !ok { bad += 1 }
     print("  \(ok ? "ok   " : "WRONG") an unlinked email did not spread -> \(judahEmail ?? "none")")
+    // The OWNER's copy wins, whoever was edited last. Without that, an echo of
+    // a shared value could quietly overwrite the real one.
+    var o = fakeLinked
+    for i in o.people.indices {
+        for (t, list) in o.people[i].fields {
+            o.people[i].fields[t] = list.map { v in
+                var x = v
+                if x.linked { x.owner = "nolan" }
+                return x
+            }
+        }
+    }
+    if let j = o.people.firstIndex(where: { $0.id == "leon" }) {
+        var list = o.people[j].values("address_line1")
+        if let k = list.firstIndex(where: { $0.label == "home" }) {
+            list[k].value = "typed on the wrong person"
+            o.people[j].fields["address_line1"] = list
+        }
+    }
+    o.propagateLinked(from: "leon")
+    let kept = o.people.first(where: { $0.id == "nolan" })?
+        .values("address_line1").first(where: { $0.label == "home" })?.value ?? "?"
+    let okOwner = kept != "typed on the wrong person"
+    if !okOwner { bad += 1 }
+    print("  \(okOwner ? "ok   " : "WRONG") an echo did not overwrite the owner -> \(kept)")
+
     return bad
 }
 

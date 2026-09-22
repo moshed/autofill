@@ -1108,3 +1108,26 @@ Three different things, and keeping them apart is the point.
 **`Dates.store` refuses a day-first date on purpose.** `22/06/2031` saves
 nothing, because in the app he types American; accepting both would make
 `06/07` a coin toss.
+
+## A linked value has an OWNER, and everybody else's copy is locked
+
+`FieldValue.owner` holds the id of the person with the MAIN copy.
+
+- Pressing the chain links the value and makes **that** person the owner.
+- On anybody else the box is **greyed out and cannot be typed in**. A disabled
+  control never hears a click, so a clear button sits on top of it for one
+  reason: to answer one. Pressing it **shakes the box** and writes a line under
+  the rows - "This is Nolan's Address line 1. Edit it there, or press the chain
+  to make this one your own." Hovering the box, or the chain, says the same.
+- The chain on a non-owner **unlinks just that person**: they keep a copy of
+  their own and stop following.
+- `propagateLinked` now gives the **owner's** copy the last word, whoever was
+  edited. Without that an echo could quietly overwrite the real one, which is
+  the failure the lock exists to prevent - and there is a test for it.
+
+`owner` is nil on a value written before owners existed. Then nobody owns it and
+it behaves the old way: editable anywhere, and the person just edited wins.
+
+`tools/ui` gained `select`, because a sidebar row is an `AXRow` holding static
+text rather than a button, so it is chosen by setting `AXSelected` rather than
+by pressing it.

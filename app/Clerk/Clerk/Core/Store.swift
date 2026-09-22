@@ -12,12 +12,18 @@ struct FieldValue: Codable, Hashable, Identifiable {
     /// The family's, not just this person's. Editing it on one person writes it
     /// to everyone - one home address, kept in one place, shown on each person.
     var linked: Bool = false
+    /// Which person holds the MAIN copy. Everybody else's copy is a read-only
+    /// echo of it: the editor greys theirs out and says where to go. nil on a
+    /// linked value written before owners existed - then nobody owns it and it
+    /// behaves the old way, editable anywhere.
+    var owner: String?
     var id: String { label + "\u{1}" + value }
 
-    init(label: String = "", value: String, linked: Bool = false) {
+    init(label: String = "", value: String, linked: Bool = false, owner: String? = nil) {
         self.label = label
         self.value = value
         self.linked = linked
+        self.owner = owner
     }
 
     /// Accepts a bare string as well as an object, so a store written before
@@ -33,6 +39,7 @@ struct FieldValue: Codable, Hashable, Identifiable {
         label = try c.decodeIfPresent(String.self, forKey: .label) ?? ""
         value = try c.decode(String.self, forKey: .value)
         linked = try c.decodeIfPresent(Bool.self, forKey: .linked) ?? false
+        owner = try c.decodeIfPresent(String.self, forKey: .owner)
     }
 }
 
@@ -210,15 +217,42 @@ struct StoreData: Codable {
     /// last person iterated won, which meant a change was quietly reverted by
     /// somebody else's older copy of the same linked value.
     mutating func propagateLinked(from source: String? = nil) {
+        // Which copy of a linked value wins. The OWNER's, if it has one - that
+        // is the whole point of naming an owner, and it is why everybody else's
+        // box is greyed out. Failing that the person just edited, and failing
+        // that whichever was found first.
+        var family = [String: [FieldValue]]()          // type -> the family's values
+
+        func consider(_ v: FieldValue, _ type: String, holder: String) {
+            var here = family[type] ?? []
+            if let j = here.firstIndex(where: { $0.label == v.label }) {
+                let winner = here[j]
+                let ownerHolds = { (x: FieldValue, who: String) in x.owner == who }
+                if ownerHolds(v, holder) && !ownerHolds(winner, holder) {
+                    here[j] = v                        // the owner's copy beats it
+                } else if v.owner != nil && winner.owner == nil {
+                    here[j] = v
+                }
+            } else {
+                here.append(v)
+            }
+            family[type] = here
+        }
+
         let ordered = source == nil ? people
             : people.filter { $0.id == source } + people.filter { $0.id != source }
-
-        var family = [String: [FieldValue]]()          // type -> the family's values
         for p in ordered {
             for (type, list) in p.fields {
-                for v in list where v.linked {
+                for v in list where v.linked { consider(v, type, holder: p.id) }
+            }
+        }
+        // A second pass, so an owner's copy wins wherever it sits in the order.
+        for p in people {
+            for (type, list) in p.fields {
+                for v in list where v.linked && v.owner == p.id {
                     var here = family[type] ?? []
-                    if !here.contains(where: { $0.label == v.label }) { here.append(v) }
+                    if let j = here.firstIndex(where: { $0.label == v.label }) { here[j] = v }
+                    else { here.append(v) }
                     family[type] = here
                 }
             }
@@ -252,8 +286,15 @@ struct StoreData: Codable {
             "postal_code": [FieldValue(value: "10952", linked: true)],
             "country": [FieldValue(value: "United States", linked: true)],
         ]
+        // The first person holds the main copy, so the demo shows the greyed out
+        // boxes and the chain on everybody else.
+        let holder = d.people.first?.id
         for i in d.people.indices {
-            for (k, v) in family { d.people[i].fields[k] = v }
+            for (k, v) in family {
+                d.people[i].fields[k] = v.map { fv in
+                    var x = fv; x.owner = holder; return x
+                }
+            }
         }
         return d
     }

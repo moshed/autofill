@@ -198,7 +198,11 @@ private struct PersonEditor: View {
                             .foregroundStyle(.primary)
                         VStack(spacing: 6) {
                             ForEach(types) { t in
-                                FieldRows(type: t, list: binding(for: t.key))
+                                FieldRows(type: t, list: binding(for: t.key),
+                                          personID: person.id,
+                                          nameOf: { id in
+                                              model.data.person(id)?.displayName ?? id
+                                          })
                             }
                         }
                     }
@@ -268,9 +272,27 @@ private struct PersonEditor: View {
 /// One field type. Usually one line; press + for a second, and a short label box
 /// appears so "work" and "personal" can be told apart. The chain marks a value
 /// as the family's.
+/// Nudges a control sideways once, to say "you cannot type here".
+private struct Shake: ViewModifier, Animatable {
+    var shakes: CGFloat
+    var animatableData: CGFloat {
+        get { shakes }
+        set { shakes = newValue }
+    }
+    func body(content: Content) -> some View {
+        content.offset(x: sin(shakes * .pi * 3) * 5)
+    }
+}
+
 private struct FieldRows: View {
     let type: FieldType
     @Binding var list: [FieldValue]
+    let personID: String
+    let nameOf: (String) -> String
+
+    /// Rows being nudged because somebody tried to type in a locked box.
+    @State private var shakes = [Int: CGFloat]()
+    @State private var complaint: (row: Int, text: String)?
 
     /// What is in the box while a date is being typed. Rewriting the box on
     /// every keystroke fights the person typing, so the store is only written
@@ -296,18 +318,37 @@ private struct FieldRows: View {
                             .frame(width: 92)
                     }
 
-                    TextField(isDate ? "mm/dd/yyyy" : "", text: bindValue(i))
-                        .textFieldStyle(.roundedBorder)
+                    ZStack {
+                        TextField(isDate ? "mm/dd/yyyy" : "", text: bindValue(i))
+                            .textFieldStyle(.roundedBorder)
+                            .disabled(lockedBy(i) != nil)
+                            .foregroundStyle(lockedBy(i) == nil ? Color.primary : Color.secondary)
+                            .modifier(Shake(shakes: shakes[i] ?? 0))
+
+                        // A disabled field never hears a click, so a clear button
+                        // sits on top of it purely to answer one.
+                        if let owner = lockedBy(i) {
+                            Button {
+                                complaint = (i, "This is \(nameOf(owner))'s \(type.label). "
+                                             + "Edit it there, or press the chain to make "
+                                             + "this one your own.")
+                                withAnimation(.linear(duration: 0.4)) {
+                                    shakes[i] = (shakes[i] ?? 0) + 1
+                                }
+                            } label: { Color.clear.contentShape(Rectangle()) }
+                            .buttonStyle(.plain)
+                            .help("Linked to \(nameOf(owner))'s \(type.label)")
+                        }
+                    }
 
                     Button { toggleLink(i) } label: {
-                        Image(systemName: v.linked ? "link" : "link")
-                            .foregroundStyle(v.linked ? Color.accentColor : Color.secondary.opacity(0.35))
+                        Image(systemName: lockedBy(i) != nil ? "link.circle.fill" : "link")
+                            .foregroundStyle(v.linked ? Color.accentColor
+                                                      : Color.secondary.opacity(0.35))
                     }
                     .buttonStyle(.borderless)
                     .disabled(v.value.isEmpty)
-                    .help(v.linked
-                          ? "Shared with everyone — changing it here changes it for all of them"
-                          : "Share this with everyone")
+                    .help(linkHelp(i))
 
                     if i == rows.count - 1 {
                         Button { list = rows + [FieldValue(value: "")] } label: {
@@ -326,6 +367,16 @@ private struct FieldRows: View {
                     }
                 }
             }
+            if let c = complaint, c.row < rows.count {
+                HStack(spacing: 5) {
+                    Image(systemName: "link")
+                    Text(c.text)
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .transition(.opacity)
+            }
             if rows.count > 1 {
                 Text("The top one is used when nothing on the page says which.")
                     .font(.caption2).foregroundStyle(.tertiary)
@@ -334,9 +385,42 @@ private struct FieldRows: View {
         }
     }
 
+    private func linkHelp(_ i: Int) -> String {
+        guard rows.indices.contains(i) else { return "" }
+        if let owner = lockedBy(i) {
+            return "Linked to \(nameOf(owner))'s \(type.label). Press to unlink and keep "
+                 + "your own copy."
+        }
+        if rows[i].linked {
+            return "Everyone shares this one. You hold it, so changing it here changes it "
+                 + "for all of them. Press to stop sharing."
+        }
+        return "Share this with everyone, kept here"
+    }
+
+    /// Who owns this value, when it is somebody else's to edit.
+    private func lockedBy(_ i: Int) -> String? {
+        guard rows.indices.contains(i) else { return nil }
+        let v = rows[i]
+        guard v.linked, let owner = v.owner, owner != personID else { return nil }
+        return owner
+    }
+
     private func toggleLink(_ i: Int) {
         var r = rows
-        r[i].linked.toggle()
+        if let owner = lockedBy(i) {
+            // Unlink: take a copy of your own and stop following theirs.
+            _ = owner
+            r[i].linked = false
+            r[i].owner = nil
+        } else if r[i].linked {
+            r[i].linked = false
+            r[i].owner = nil
+        } else {
+            r[i].linked = true
+            r[i].owner = personID          // whoever links it holds the main copy
+        }
+        complaint = nil
         list = r
     }
 

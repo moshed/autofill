@@ -4,6 +4,7 @@
 //   ui dump              print every control in the front window
 //   ui click "Check now" press the first button whose title holds that text
 //   ui value "Version"   print the value beside that label
+//   ui select "Leon"     pick a row in a list or sidebar (a row is not a button)
 //
 // System Events cannot do this: `entire contents` of a SwiftUI window returns
 // an EMPTY list, although the window plainly has children. Walking the tree
@@ -63,6 +64,23 @@ func walk(_ e: AXUIElement, _ depth: Int) {
            n.localizedCaseInsensitiveContains(want) {
             AXUIElementPerformAction(e, kAXPressAction as CFString)
             print("clicked: \(n)"); done = true; return
+        }
+    case "select":
+        // A sidebar row is an AXRow holding static text, not a button, so it is
+        // chosen by setting AXSelected on the row rather than by pressing it.
+        if role == "AXStaticText", n.localizedCaseInsensitiveContains(want) {
+            var node: AXUIElement? = e
+            for _ in 0..<6 {
+                guard let cur = node else { break }
+                if str(cur, kAXRoleAttribute as String) == "AXRow" {
+                    AXUIElementSetAttributeValue(cur, kAXSelectedAttribute as CFString,
+                                                 kCFBooleanTrue)
+                    print("selected: \(n)"); done = true; return
+                }
+                var parent: AnyObject?
+                AXUIElementCopyAttributeValue(cur, kAXParentAttribute as CFString, &parent)
+                node = parent as! AXUIElement?
+            }
         }
     case "value":
         if n.localizedCaseInsensitiveContains(want) {
