@@ -1060,3 +1060,26 @@ should never have been possible.
 Test the matcher offline against saved pages instead. When the browser genuinely
 has to be exercised, ask Moshe to press the button and read
 `~/Library/Logs/Clerk.log` afterwards.
+
+## A heading longer than 60 characters was thrown away
+
+`sectionFor` accepted a styled `<div>` as a heading only when its text was 60
+characters or fewer. El Al's passenger header is the name FOLLOWED by the
+"fill in from a passport photo" link, in one container. Over the limit, the
+heading was dropped, the block had no name, and **every passenger block then
+falls back to the default person** - which is how somebody else's passport
+expiry appears under Michelle's name.
+
+`textOf` already stops at 80 characters, so the extra guard was doing nothing
+but harm. Extra words in a heading are safe: `resolvePerson` only counts text
+that matches a stored first or full name, so a link's wording names nobody.
+
+**The fill log now names the heading each block was read under:**
+
+```
+fill-all starting on 29 fields; blocks: grp1="MICHELLE DANCYKIER …" | grp2="JUDAH …"
+```
+
+`(no heading)` there means the block has nothing to say whose it is, and the
+default person will be used. That one line answers "why did it fill the wrong
+person" without another round trip.

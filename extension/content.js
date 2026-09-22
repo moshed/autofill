@@ -132,8 +132,14 @@ function sectionFor(el) {
       }
       /* A <label> above the field is the field's own label, not a heading. */
       if (sib.tagName !== "LABEL" && !sib.querySelector?.("input,select,textarea")) {
+        /* textOf already stops at 80 characters. The old cut-off of 60 threw
+         * away El Al's passenger header, which reads
+         * "MICHELLE DANCYKIER" followed by the "fill in from a passport photo"
+         * link - so the block had no name, and every passenger got the default
+         * person's passport. Extra words are harmless: only text that actually
+         * matches a stored name counts for anything. */
         const t = textOf(sib);
-        if (t && t.length <= 60) return t;
+        if (t) return t;
       }
       sib = sib.previousElementSibling;
     }
@@ -649,7 +655,13 @@ function fillEverything(as) {
   }));
 
   const gen = ++fillGen;
-  note(`fill-all starting on ${els.length} fields`);
+  const blocks = new Map();
+  for (const f of fields) {
+    if (!f.group) continue;
+    if (!blocks.has(f.group)) blocks.set(f.group, f.section || "(no heading)");
+  }
+  note(`fill-all starting on ${els.length} fields; blocks: ` +
+       [...blocks].map(([g, s]) => `${g}="${s}"`).join(" | "));
   chip(as ? `Filling as ${as.name}…` : "Filling the form…", "good");
   chrome.runtime.sendMessage({
     type: "fillForm",
@@ -734,7 +746,7 @@ function note(text) {
 /* Bumped by hand when the page code changes. Safari caches an extension, so
  * without this there is no way to tell from the log whether it is running the
  * build you just installed. */
-const BUILD = "world-options";
+const BUILD = "block-headings";
 note(`content script loaded on ${location.host} [${BUILD}]`);
 
 chrome.runtime.sendMessage({ type: "config" }, (cfg) => {
