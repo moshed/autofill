@@ -799,3 +799,42 @@ tools/ui/ui click "Check now"    # press a button, tab or toggle by name
 
 An icon-only tab reports its SF Symbol name, so the Setup tab is "Gear Shape".
 Build it with `swiftc -target arm64-apple-macos13.0 -O main.swift -o ui`.
+
+## The name
+
+Renamed from **Autofill** to **Clerk** on 2026-09-22. "Autofill" is what Safari
+and Chrome call their own feature, so it was impossible to search for and easy
+to mistake for the browser's.
+
+What moved with it: bundle `com.DNZ.clerk`, URL scheme `clerk://`, keychain item
+`clerk_store`, repo `moshed/clerk`, site `dancykier.com/clerk`, feed and AI proxy
+under the same path. `dancykier.com/autofill` redirects.
+
+**A bundle-ID change orphans the keychain item** — the ACL holds the old code
+requirement, so the app would have hung on a password dialog. The store was
+carried across with `-ExportFile` out of the old app and `-ImportFile` into the
+new one, which keeps the app the process that creates the item. The old item is
+left in place, untouched.
+
+Two things the rename pass missed, both worth remembering:
+
+- **`.gitignore` has no extension**, so a rewrite that walks files by suffix
+  skips it. Its allow-list still pointed at `app/Autofill/...` and every Swift
+  source silently left the repo.
+- **Demo names have two rules.** At least 4 characters, because anything shorter
+  is ignored on a page on purpose; and not a substring of an ordinary word,
+  because the leak check searches the whole prompt. "Leo" failed the first,
+  "Sam" (in "same") and "Ruth" (in "truth") failed the second.
+
+## The landing page
+
+`Apps/Web/apps-hub/clerk/` — deployed with the rest of the site by
+`npx wrangler pages deploy . --project-name dancykier`. `tools/release.sh` does
+it as part of a release.
+
+- An animated demo fills a fake visa form in the page itself: two traveler
+  blocks filled with the right person's details, a block left alone, then the
+  two-click people list over a scrim. Pure CSS and JS, pauses off screen,
+  and honours `prefers-reduced-motion`.
+- The screenshots in `shots/` are real windows captured by `tools/shot.sh` in
+  **demo mode**, so no real detail is on them.
