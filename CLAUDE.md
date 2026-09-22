@@ -795,11 +795,27 @@ So the proxy is protected by bounding the damage instead:
    eight 429s.
    The FREE plan allows only `period: 10` and `mitigation_timeout: 10` - any
    other value is rejected with "not entitled to use the period 60".
-3. **Kill switch**, no deploy needed:
-   ```bash
-   npx wrangler pages secret put CLERK_AI_OFF --project-name dancykier   # "1"
-   ```
-   Everyone with their own key carries on.
+3. **A daily ceiling**, `CLERK_AI_DAILY`, default 3000. Past it the call is
+   refused with 429 and "add your own key in Setup"; the app falls back to its
+   patterns. `GET https://dancykier.com/clerk/ai` prints today's count.
+4. **Kill switch**, `CLERK_AI_OFF=1`. Everyone with their own key carries on.
+
+**A Pages SECRET does not take effect until the next deploy.** Measured, not
+assumed: the cap was set to 1, the endpoint kept reporting 3000 and kept
+answering, and only a redeploy applied it. So a change is two commands:
+
+```bash
+npx wrangler pages secret put CLERK_AI_OFF --project-name dancykier    # "1"
+npx wrangler pages deploy . --project-name dancykier --branch main --commit-dirty=true
+```
+
+**The counter lives in the edge CACHE, so it is PER DATACENTER.** This account's
+API tokens cannot create - or even list - KV, D1 or a Durable Object
+("Authentication error" on all three), and Pages Functions have no other durable
+store. A cache counter still turns an unbounded bill into a small one: one
+attacker normally hits one or two datacenters, and the rate limit in front means
+they reach the cap slowly. **Swap `readCount`/`writeCount` for KV the moment a
+namespace exists** - nothing else in the file changes.
 
 **What it costs if somebody does find it.** A call is about 300 tokens and Jev is
 $42 per billion, so ~$0.000013 each. One machine flat out against the rate limit
