@@ -302,6 +302,31 @@ enum Fields {
         #"\bcard[\s_-]?(number|no|num)"#, #"\bcc[\s_-]?(number|name|exp|csc|cvv)"#,
         #"\bcredit[\s_-]?card"#, #"\bdebit"#, #"\bcvv\b"#, #"\bcvc\b"#,
         #"\bsecurity[\s_-]?code"#, #"\biban\b"#, #"\brouting"#, #"\baccount[\s_-]?number"#,
+
+        // The same boxes in other languages. Found on 2026-09-22: a French form's
+        // "Rechercher sur le site" was NOT recognised as a search box. It only
+        // escaped being filled because the whole-form fill refuses anything under
+        // 0.7, which is luck, not a rule. A search box must be refused outright.
+        //
+        // Search
+        #"\brecherche"#, #"\bbuscar\b"#, #"\bbúsqueda"#, #"\bbusca\b"#,
+        #"\bpesquisa"#, #"\bsuche"#, #"\bsuchen\b"#, #"\bzoek"#,
+        #"\bcerca\b"#, #"\bricerca"#, #"\bszukaj"#, #"\barama\b"#,
+        #"\bпоиск"#, #"חיפוש"#, #"搜索"#, #"搜尋"#, #"查询"#, #"検索"#, #"검색"#, #"بحث"#,
+        // Coupon and discount
+        #"\bcodice[\s_-]?sconto"#, #"\bcupón"#, #"\bcupom"#, #"\bgutschein"#,
+        #"\brabatt"#, #"\bkorting"#, #"优惠券"#, #"クーポン"#, #"쿠폰"#, #"קופון"#,
+        // Comment and message
+        #"\bcommentaire"#, #"\bcomentario"#, #"\bcomentário"#, #"\bkommentar"#,
+        #"\bcommento"#, #"\bopmerking"#, #"\bnachricht"#, #"\bmensaje"#,
+        #"备注"#, #"留言"#, #"コメント"#, #"댓글"#, #"הערה"#, #"הערות"#, #"תגובה"#,
+        // One-time and verification codes
+        #"\bcode[\s_-]?de[\s_-]?vérification"#, #"\bcódigo[\s_-]?de[\s_-]?verificaci"#,
+        #"\bbestätigungscode"#, #"\bverifizierung"#, #"\bverifica"#,
+        #"验证码"#, #"認証コード"#, #"確認コード"#, #"인증번호"#, #"קוד אימות"#,
+        // Card security
+        #"\bcarte[\s_-]?de[\s_-]?crédit"#, #"\btarjeta[\s_-]?de[\s_-]?crédito"#,
+        #"\bkreditkarte"#, #"\bcarta[\s_-]?di[\s_-]?credito"#, #"信用卡"#, #"クレジットカード"#,
     ]
 
     /// A "card number" is usually a payment card and must never be filled - but

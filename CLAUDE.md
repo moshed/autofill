@@ -888,3 +888,52 @@ it as part of a release.
   and honours `prefers-reduced-motion`.
 - The screenshots in `shots/` are real windows captured by `tools/shot.sh` in
   **demo mode**, so no real detail is on them.
+
+## Languages other than English
+
+Measured on 2026-09-22, against the real matcher, not by eye.
+
+- **Naming the field: 24 of 24** across French, Spanish, German, Italian,
+  Portuguese, Dutch, Hebrew, Chinese, Japanese, Arabic, Russian, Polish, Korean
+  and Turkish. **Hebrew alone: 15 of 15** — including passport issue date,
+  passport expiry, place of birth, national ID and sex.
+- Only ONE of those 24 matched a pattern (`Numéro de passeport`). **Everything
+  else came from Jev.** So with **Work offline** on, a foreign form falls back to
+  offering a list rather than filling. Worth knowing before promising anything.
+- **Whose field it is works with no foreign vocabulary at all**, because a name
+  is a name. A whole Hebrew form with two travelers filled 10 fields, every one
+  to the right person, with the four Hebrew traps left alone.
+
+Two real bugs came out of that test:
+
+1. **`neverFill` was English only.** A French "Rechercher sur le site" was NOT
+   recognised as a search box; it escaped only because a whole-form fill refuses
+   anything under 0.7 confidence, which is luck, not a rule. Search, coupon,
+   comment, verification code and credit card are now listed in fourteen
+   languages, with tests.
+2. **Dates were always written American.** An Israeli form was being given
+   `07/12/2018`, which reads there as 7 December. `Match.monthFirst` now decides:
+   a `.gov`, `.mil` or `.us` host is month first; any other two-letter country
+   code is day first; any non-ASCII letter in the page's labels means the form is
+   not American, so day first; otherwise month first as before.
+
+## A stale content script makes the button do NOTHING, silently
+
+The one that broke El Al check-in on 2026-09-22, and the real cause of every
+earlier "it works in a new window but not the old one".
+
+Installing the app gives the extension a NEW identity. Every page already open
+keeps the OLD content script, and **that copy's globals are still on the
+window**. The background asked "does `window.__clerkFill` exist?", got yes,
+called it, and returned. The dead copy cannot reach the new background, so:
+
+- nothing was filled, and
+- **nothing was logged either**, because a page's log line is relayed through the
+  background. The log showed `toolbar button clicked` and then silence.
+
+That silence is the tell. **`toolbar button clicked` with no
+`fill-all starting on N fields` after it means a stale copy, not a page problem.**
+
+Fix: `background.js` now injects `content.js` FIRST on every click and calls
+afterwards. `content.js` tears the old copy down and takes over, so re-injecting
+is safe and costs nothing. Existence of a global is not evidence of life.

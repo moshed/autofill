@@ -296,6 +296,25 @@ let neverCases: [(String, FormPayload)] = [
         field("One-time passcode", name: "otp", current: true)])),
     ("a comment box", FormPayload(title: "Blog", fields: [
         field("Comment", name: "comment", current: true)])),
+
+    // The same boxes in other languages. A French search box used to get through
+    // this list and was only spared by the confidence bar.
+    ("a French search box", FormPayload(title: "Demande de visa", fields: [
+        field("Rechercher sur le site", name: "recherche", current: true)])),
+    ("a Spanish search box", FormPayload(title: "Solicitud", fields: [
+        field("Buscar en el sitio", name: "buscar", current: true)])),
+    ("a German search box", FormPayload(title: "Antrag", fields: [
+        field("Suche", name: "suche", current: true)])),
+    ("a Chinese search box", FormPayload(title: "申请", fields: [
+        field("搜索", name: "ss", current: true)])),
+    ("a Hebrew search box", FormPayload(title: "בקשה", fields: [
+        field("חיפוש באתר", name: "hipus", current: true)])),
+    ("a Japanese verification code", FormPayload(title: "ログイン", fields: [
+        field("確認コード", name: "code", current: true)])),
+    ("a French comment box", FormPayload(title: "Contact", fields: [
+        field("Commentaire", name: "c", current: true)])),
+    ("a German credit card", FormPayload(title: "Kasse", fields: [
+        field("Kreditkarte", name: "kk", current: true)])),
 ]
 
 func checkNeverFill() async -> Int {

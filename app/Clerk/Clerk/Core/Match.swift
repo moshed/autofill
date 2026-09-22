@@ -261,7 +261,7 @@ enum Match {
             let vals = preRanked ?? data.values(person: pid, type: type)
             for v in vals where !v.value.isEmpty {
                 out.append(.init(person: pid, name: nameFor(pid, v, data),
-                                 value: value(v, type, field)))
+                                 value: value(v, type, field, payload)))
             }
         }
         return out
@@ -272,8 +272,9 @@ enum Match {
         return v.label.isEmpty ? who : "\(who) · \(v.label)"
     }
 
-    static func value(_ v: FieldValue, _ type: String, _ field: FormField) -> String {
-        dateTypes.contains(type) ? formatDate(v.value, for: field) : v.value
+    static func value(_ v: FieldValue, _ type: String, _ field: FormField,
+                      _ page: FormPayload? = nil) -> String {
+        dateTypes.contains(type) ? formatDate(v.value, for: field, on: page) : v.value
     }
 
     // MARK: - which of several values
@@ -470,7 +471,35 @@ enum Match {
     /// one. A form almost never wants it that way, so turn it into whatever the
     /// field is asking for, reading the placeholder first and falling back to
     /// the American order.
-    static func formatDate(_ iso: String, for field: FormField) -> String {
+    /// Does this page write the month first?
+    ///
+    /// Only the United States really does. Everywhere else writes the day first,
+    /// and `07/12` is 12 July in one reading and 7 December in the other - the
+    /// worst kind of mistake, because the form accepts both and says nothing.
+    /// Found on 2026-09-22: an Israeli form was being given the American order.
+    static func monthFirst(_ page: FormPayload?) -> Bool {
+        guard let page, let host = URL(string: page.url ?? "")?.host?.lowercased()
+        else { return true }                       // nothing to go on: unchanged
+
+        let tld = host.split(separator: ".").last.map(String.init) ?? ""
+        if tld == "gov" || tld == "mil" || tld == "us" { return true }
+        // A two-letter country code that is not the United States.
+        if tld.count == 2 { return false }
+
+        // A form written in another language is not an American form. Any letter
+        // outside plain ASCII says so: Hebrew, Arabic, Chinese, Cyrillic, and
+        // the accents in "Numéro" or "Geburtsdatum für".
+        let text = ([page.title] + page.fields.flatMap {
+            [$0.label, $0.placeholder, $0.section, $0.ariaLabel]
+        }).compactMap { $0 }.joined(separator: " ")
+        if text.unicodeScalars.contains(where: { $0.value > 0x7F && $0.properties.isAlphabetic }) {
+            return false
+        }
+        return true
+    }
+
+    static func formatDate(_ iso: String, for field: FormField,
+                           on page: FormPayload? = nil) -> String {
         let parts = iso.split(separator: "-").map(String.init)
         guard parts.count == 3, parts[0].count == 4 else { return iso }
         let (y, m, d) = (parts[0], parts[1], parts[2])
@@ -493,7 +522,10 @@ enum Match {
                     : [m, d, y].joined(separator: sep)
             }
         }
-        return [m, d, y].joined(separator: sep)     // United States, no hint
+        // No hint on the field itself, so go by the page.
+        return monthFirst(page)
+            ? [m, d, y].joined(separator: sep)
+            : [d, m, y].joined(separator: sep)
     }
 
     // MARK: - what Jev is allowed to see
@@ -750,7 +782,7 @@ enum Match {
         alts = Array(alts.prefix(8))
 
         var best = pick.ranked.first?.value ?? mine[0].value
-        if dateTypes.contains(ftype) { best = formatDate(best, for: current) }
+        if dateTypes.contains(ftype) { best = formatDate(best, for: current, on: payload) }
 
         return Suggestion(ok: true, value: best, type: ftype, typeLabel: Fields.label(ftype),
                           person: who.id, confidence: min(type.confidence, who.confidence),

@@ -640,7 +640,7 @@ function note(text) {
 /* Bumped by hand when the page code changes. Safari caches an extension, so
  * without this there is no way to tell from the log whether it is running the
  * build you just installed. */
-const BUILD = "cancel-inflight";
+const BUILD = "always-inject";
 note(`content script loaded on ${location.host} [${BUILD}]`);
 
 chrome.runtime.sendMessage({ type: "config" }, (cfg) => {

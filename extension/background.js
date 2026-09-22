@@ -121,12 +121,21 @@ async function fire(tab) {
     args: [menu],
   }).then((r) => r?.[0]?.result === true).catch(() => false);
 
-  if (await call()) return;
-
+  /* Inject FIRST, every time. Asking "does __clerkFill exist?" is not the same
+   * as asking "is this page's copy alive". After the app is reinstalled the
+   * extension gets a new identity and every page already open keeps the OLD
+   * content script - whose globals are still on the window. The check said yes,
+   * the dead copy ran, it could not reach this background, and so nothing was
+   * filled AND nothing was logged. That is exactly what "it does nothing on the
+   * page I already had open" looks like. Cost an El Al check-in on 2026-09-22.
+   *
+   * content.js calls __clerkTeardown on the old copy and takes over, so
+   * injecting again is safe and cheap. */
   try {
     await chrome.scripting.executeScript({ target, files: ["content.js"] });
   } catch (e) {
     note(`could not inject: ${e.message}`);
+    if (await call()) return;                 // a page we may not script, but alive
     return;
   }
   if (await call()) return;
