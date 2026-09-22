@@ -32,9 +32,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ note: Notification) {
         _ = AppModel.shared
-        // A real app: a Dock icon, a menu bar of its own, and a place in the
-        // app switcher. The status item stays as the quick way in.
-        NSApp.setActivationPolicy(.regular)
+        // No Dock icon while there is nothing on screen. It appears with the
+        // window and goes away with it, so Clerk is a real app when you are
+        // looking at it and out of the way when you are not.
+        NSApp.setActivationPolicy(.accessory)
+        NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification, object: nil, queue: .main) { [weak self] _ in
+            // willClose fires BEFORE the window goes, so look again after it has.
+            DispatchQueue.main.async { self?.matchDockToWindow() }
+        }
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         item.button?.image = NSImage(systemSymbolName: "text.cursor",
                                      accessibilityDescription: "Clerk")
@@ -70,12 +76,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openSettings()
     }
 
+    /// A Dock icon exactly when a window is on screen.
+    private func matchDockToWindow() {
+        let showing = NSApp.windows.contains { $0.isVisible && $0.canBecomeMain }
+        let want: NSApplication.ActivationPolicy = showing ? .regular : .accessory
+        guard NSApp.activationPolicy() != want else { return }
+        NSApp.setActivationPolicy(want)
+        if showing { NSApp.activate(ignoringOtherApps: true) }
+    }
+
     @objc private func openSettings() {
+        // The icon has to be there before the window is, or the window opens
+        // behind whatever is in front.
+        if NSApp.activationPolicy() != .regular { NSApp.setActivationPolicy(.regular) }
         NSApp.activate(ignoringOtherApps: true)
         if let w = NSApp.windows.first(where: { $0.title == "Clerk" }) {
             w.makeKeyAndOrderFront(nil)
         } else {
             NSWorkspace.shared.open(URL(string: "clerk://settings")!)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.matchDockToWindow()
         }
     }
 }

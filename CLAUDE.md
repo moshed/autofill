@@ -1179,13 +1179,18 @@ only from "Share mine with everyone" on the chain menu. Two tests hold the line 
 one that following leaves the others alone, one that sharing on purpose still
 reaches everybody.
 
-## A real app, not a background agent
+## A real app while you are looking at it, invisible when you are not
 
 Clerk used to be `LSUIElement` - no Dock icon, no menu bar of its own, no place
-in the app switcher. It is a normal app now.
+in the app switcher. Now the Dock icon follows the WINDOW.
 
-- `INFOPLIST_KEY_LSUIElement` is gone from `tools/fix_project.py`, and
-  `applicationDidFinishLaunching` sets `NSApp.setActivationPolicy(.regular)`.
+- `INFOPLIST_KEY_LSUIElement` is gone from `tools/fix_project.py`. The app starts
+  `.accessory` (no Dock icon), goes `.regular` when a window opens and back to
+  `.accessory` when the last one closes - `matchDockToWindow()`.
+- The policy is raised BEFORE the window is shown, or the window opens behind
+  whatever is in front.
+- `NSWindow.willCloseNotification` fires while the window is still there, so the
+  check is deferred one run loop.
 - **Closing the window does not quit it.**
   `applicationShouldTerminateAfterLastWindowClosed` returns false, because the
   helper the browser talks to lives in this process - quitting it would stop
@@ -1205,3 +1210,15 @@ osascript -e 'tell application "System Events" to tell process "Clerk" \
 osascript -e 'tell application "System Events" to tell process "Clerk" \
   to return count of menu bar items of menu bar 2'                   # 1, the status item
 ```
+
+
+Measured by driving it, not by reading it:
+
+| | Dock icon |
+|---|---|
+| just launched, no window | no |
+| window open | yes |
+| window closed again | no |
+
+The menu bar icon is there throughout, the process keeps running, and the helper
+still answers 200 with no window on screen.
