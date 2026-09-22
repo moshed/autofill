@@ -477,3 +477,37 @@ enum Fields {
         return Guess(key: nil, confidence: 0, why: "no pattern matched")
     }
 }
+
+/// Dates are STORED as ISO, because that is the one way to write a date that
+/// cannot be read two ways. Moshe reads and types them American, and a form gets
+/// whatever that form is asking for - see `Match.formatDate`.
+enum Dates {
+    /// "2031-06-22" -> "06/22/2031". Anything else is handed back untouched, so
+    /// a half-typed value is never mangled.
+    static func display(_ iso: String) -> String {
+        let p = iso.split(separator: "-").map(String.init)
+        guard p.count == 3, p[0].count == 4, p[1].count == 2, p[2].count == 2,
+              p.allSatisfy({ $0.allSatisfy(\.isNumber) }) else { return iso }
+        return "\(p[1])/\(p[2])/\(p[0])"
+    }
+
+    /// "06/22/2031", "6/22/2031", "06-22-2031" or an ISO date -> "2031-06-22".
+    /// nil while it is still being typed, so nothing half finished is saved.
+    static func store(_ typed: String) -> String? {
+        let t = typed.trimmingCharacters(in: .whitespaces)
+        if t.isEmpty { return "" }
+        let p = t.split(whereSeparator: { $0 == "/" || $0 == "-" || $0 == "." }).map(String.init)
+        guard p.count == 3, p.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) })
+        else { return nil }
+
+        // Already ISO, pasted in.
+        if p[0].count == 4 {
+            guard let m = Int(p[1]), let d = Int(p[2]), (1...12).contains(m), (1...31).contains(d)
+            else { return nil }
+            return String(format: "%@-%02d-%02d", p[0], m, d)
+        }
+        guard p[2].count == 4, let m = Int(p[0]), let d = Int(p[1]),
+              (1...12).contains(m), (1...31).contains(d) else { return nil }
+        return String(format: "%@-%02d-%02d", p[2], m, d)
+    }
+}

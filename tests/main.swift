@@ -372,6 +372,46 @@ func checkPages() async -> Int {
     return bad
 }
 
+
+// --- dates in the app, dates on a form -----------------------------------
+//
+// Stored ISO. Shown and typed American, because that is what Moshe reads.
+// What a FORM gets is decided separately, by the page - see the fill cases.
+
+func checkDates() -> Int {
+    var bad = 0
+    print("\ndates in the app")
+    let shown: [(String, String)] = [
+        ("2031-06-22", "06/22/2031"),
+        ("2028-03-27", "03/27/2028"),
+        ("", ""),
+        ("06/22", "06/22"),                 // half typed, handed back untouched
+    ]
+    for (iso, want) in shown {
+        let got = Dates.display(iso)
+        let ok = got == want
+        if !ok { bad += 1 }
+        print("  \(ok ? "ok   " : "WRONG") show \(iso.isEmpty ? "(empty)" : iso) -> \(got)")
+    }
+    let typed: [(String, String?)] = [
+        ("06/22/2031", "2031-06-22"),
+        ("6/22/2031", "2031-06-22"),
+        ("06-22-2031", "2031-06-22"),
+        ("2031-06-22", "2031-06-22"),       // pasted ISO
+        ("", ""),
+        ("06/2", nil),                      // still typing: save nothing
+        ("22/06/2031", nil),                // day first is not what he types
+        ("hello", nil),
+    ]
+    for (text, want) in typed {
+        let got = Dates.store(text)
+        let ok = got == want
+        if !ok { bad += 1 }
+        print("  \(ok ? "ok   " : "WRONG") type \(text.isEmpty ? "(empty)" : text) -> \(got ?? "nothing saved")")
+    }
+    return bad
+}
+
 func checkNeverFill() async -> Int {
     var bad = 0
     print("\nnever filled")
@@ -517,6 +557,7 @@ Task {
     failures += checkLinking()
     failures += await checkNeverFill()
     failures += await checkPages()
+    failures += checkDates()
     print("\n\(failures == 0 ? "all good" : "\(failures) failures")")
     sema.signal()
 }

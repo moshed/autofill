@@ -272,6 +272,13 @@ private struct FieldRows: View {
     let type: FieldType
     @Binding var list: [FieldValue]
 
+    /// What is in the box while a date is being typed. Rewriting the box on
+    /// every keystroke fights the person typing, so the store is only written
+    /// when what they have typed is a whole date.
+    @State private var typing = [Int: String]()
+
+    private var isDate: Bool { Match.dateTypes.contains(type.key) }
+
     private var rows: [FieldValue] { list.isEmpty ? [FieldValue(value: "")] : list }
 
     var body: some View {
@@ -289,7 +296,8 @@ private struct FieldRows: View {
                             .frame(width: 92)
                     }
 
-                    TextField("", text: bindValue(i)).textFieldStyle(.roundedBorder)
+                    TextField(isDate ? "mm/dd/yyyy" : "", text: bindValue(i))
+                        .textFieldStyle(.roundedBorder)
 
                     Button { toggleLink(i) } label: {
                         Image(systemName: v.linked ? "link" : "link")
@@ -339,8 +347,24 @@ private struct FieldRows: View {
     }
 
     private func bindValue(_ i: Int) -> Binding<String> {
-        Binding(get: { rows.indices.contains(i) ? rows[i].value : "" },
-                set: { var r = rows; r[i].value = $0; list = r })
+        guard isDate else {
+            return Binding(get: { rows.indices.contains(i) ? rows[i].value : "" },
+                           set: { var r = rows; r[i].value = $0; list = r })
+        }
+        return Binding(
+            get: {
+                if let t = typing[i] { return t }
+                return Dates.display(rows.indices.contains(i) ? rows[i].value : "")
+            },
+            set: { text in
+                typing[i] = text
+                guard let iso = Dates.store(text) else { return }   // still typing
+                var r = rows
+                guard r.indices.contains(i) else { return }
+                r[i].value = iso
+                list = r
+                typing[i] = nil                                     // show it back formatted
+            })
     }
 }
 

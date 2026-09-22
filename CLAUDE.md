@@ -1083,3 +1083,28 @@ fill-all starting on 29 fields; blocks: grp1="MICHELLE DANCYKIER …" | grp2="JU
 `(no heading)` there means the block has nothing to say whose it is, and the
 default person will be used. That one line answers "why did it fill the wrong
 person" without another round trip.
+
+## Dates: stored one way, read another, filled a third
+
+Three different things, and keeping them apart is the point.
+
+- **Stored: ISO**, `2028-03-27`. The one way to write a date that cannot be read
+  two ways.
+- **Shown and typed in the app: American**, `03/27/2028`, because that is what
+  Moshe reads. `Dates.display` / `Dates.store` in `Fields.swift`, tested.
+  The box is only written back when what he has typed is a WHOLE date, so
+  reformatting never fights him mid-keystroke - the half-typed text lives in
+  `FieldRows.typing` until it parses.
+- **Filled: whatever the FORM asks for.** `Match.formatDate` with
+  `Match.monthFirst`: a `date` input gets ISO, a placeholder showing the order
+  wins, then the page decides. Measured:
+
+  | page | what it types |
+  |---|---|
+  | elal.com, Hebrew labels | `27/03/2028` |
+  | elal.com, English page | `03/27/2028` |
+  | travel.state.gov | `03/27/2028` |
+
+**`Dates.store` refuses a day-first date on purpose.** `22/06/2031` saves
+nothing, because in the app he types American; accepting both would make
+`06/07` a coin toss.
