@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Autofill",
+  "version": "1.0",
+  "description": "Fills the field you are in with the right person's details.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>",
+    "http://127.0.0.1:8771/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "all_frames": true,
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Autofill \u2014 click to fill, double-click to choose",
+    "default_icon": {
+      "48": "icons/icon-48.png",
+      "96": "icons/icon-96.png",
+      "128": "icons/icon-128.png",
+      "256": "icons/icon-256.png",
+      "512": "icons/icon-512.png"
+    }
+  },
+  "icons": {
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png",
+    "256": "icons/icon-256.png",
+    "512": "icons/icon-512.png"
+  }
+}

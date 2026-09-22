@@ -1,0 +1,36 @@
+# The Xcode project is GENERATED on every build by
+# safari-web-extension-converter + tools/fix_project.py, so none of it is
+# committed. The hand-written Swift lives inside that generated folder, so it
+# has to be allow-listed back in.
+app/*
+!app/Autofill
+app/Autofill/*
+!app/Autofill/Autofill
+app/Autofill/Autofill/*
+!app/Autofill/Autofill/Core
+!app/Autofill/Autofill/AutofillApp.swift
+!app/Autofill/Autofill/SettingsView.swift
+!app/Autofill/Autofill/ShortcutRecorder.swift
+!app/Autofill/Autofill/Assets.xcassets
+
+*.app
+*.xcodeproj
+DerivedData/
+logs/
+tools/ui/ui
+tools/__pycache__/
+
+# The Sparkle SIGNING key. Publishing it would let anyone push an "update".
+tools/sparkle/*.pem
+tools/sparkle/*.key
+tools/sparkle/generate_keys
+tools/sparkle/sign_update
+
+# An export holds every stored value in plain text.
+*-export.json
+autofill-export.json
+
+.DS_Store
+
+# A stray older copy of the test bench. The real one is extension/testpage.html.
+Autofill test page.html

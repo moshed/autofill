@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Autofill</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 13px -apple-system, system-ui, sans-serif; margin: 0; width: 260px;
+         background: Canvas; color: CanvasText; }
+  h1 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em;
+       color: color-mix(in srgb, CanvasText 45%, Canvas);
+       margin: 0; padding: 10px 12px 6px; }
+  ul { list-style: none; margin: 0; padding: 0 6px 8px; max-height: 320px; overflow: auto; }
+  li { padding: 7px 9px; border-radius: 7px; cursor: default; display: flex;
+       justify-content: space-between; gap: 10px; }
+  li:focus { outline: none; background: AccentColor; color: AccentColorText; }
+  li .k { opacity: .55; font-size: 11px; }
+  .hint { padding: 7px 12px 10px; font-size: 11px;
+          color: color-mix(in srgb, CanvasText 45%, Canvas);
+          border-top: 1px solid color-mix(in srgb, CanvasText 12%, Canvas); }
+</style>
+<h1>Fill this form as</h1>
+<ul id="list"></ul>
+<div class="hint">Return fills · arrows to move · Esc closes</div>
+<script src="popup.js"></script>
