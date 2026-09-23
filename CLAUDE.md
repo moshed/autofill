@@ -1272,3 +1272,37 @@ number, and a driver's licence. Insurance cards, a library card, a policy number
 and bank details are not identity; they sit under **Miscellaneous**, which is
 also where a new field lands by default. The old catch-all called "Other" is
 gone, so there is one place for the odds and ends rather than two.
+
+## Putting card or bank details in without them passing through anyone
+
+```bash
+./tools/add-payment.sh                 # asks for each one, hidden as you type
+./tools/add-payment.sh --person judah
+```
+
+Hidden input (`read -rs`), nothing echoed, nothing printed back, nothing in the
+shell history. The working file sits in a `chmod 700` folder and is shredded on
+exit, including on ctrl-C.
+
+It hands the file to the app with `-ImportFile` rather than writing the keychain
+itself, for the usual reason: macOS ties a keychain item to whoever created it,
+so **Clerk has to be the process that writes it**. Same path the API key takes.
+
+The other way in is Clerk's own **Import** box, which never leaves the Mac either.
+
+**Safari's saved cards cannot be read out.** They live in the keychain locked to
+Safari, and pulling card numbers out of another app's credential store is not
+something to automate. Safari -> Settings -> AutoFill -> Credit Cards -> Edit
+shows them after a password prompt, and they can be pasted into Import.
+
+## Apple's notary service can simply be down
+
+2026-09-23: five refusals in a row - `HTTPClientError.deadlineExceeded`, a
+timeout, and once "the certificate for this server is invalid". Meanwhile
+`curl https://appstoreconnect.apple.com/notary/v2/submissions` answered 401 and
+`timestamp.apple.com` answered 302, so the network and the certificates were
+fine. Signing failed too, because `--timestamp` needs Apple as well.
+
+**Do not install unnotarised to get around it** - Safari silently drops the
+extension. Leave the working build in `/Applications`, commit the code, and try
+again later.
