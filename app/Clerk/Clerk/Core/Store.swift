@@ -155,10 +155,13 @@ struct StoreData: Codable {
     /// Never call out at all. The patterns still name most fields; anything they
     /// cannot name is offered rather than guessed.
     var offline: Bool = false
+    /// Card and bank boxes are only filled when this is on. Moshe asked for it
+    /// on 2026-09-23, having stored his account and routing numbers.
+    var fillPayment: Bool = false
 
     enum CodingKeys: String, CodingKey {
         case people, shared, shortcut, jevKey, customFields, offline
-        case hiddenFields, fieldLabels
+        case hiddenFields, fieldLabels, fillPayment
     }
 
     init(people: [Person] = [], shared: [String: [FieldValue]] = [:],
@@ -186,6 +189,7 @@ struct StoreData: Codable {
         jevKey = try c.decodeIfPresent(String.self, forKey: .jevKey) ?? ""
         customFields = try c.decodeIfPresent([CustomField].self, forKey: .customFields) ?? []
         offline = try c.decodeIfPresent(Bool.self, forKey: .offline) ?? false
+        fillPayment = try c.decodeIfPresent(Bool.self, forKey: .fillPayment) ?? false
         hiddenFields = try c.decodeIfPresent([String].self, forKey: .hiddenFields) ?? []
         fieldLabels = try c.decodeIfPresent([String: String].self, forKey: .fieldLabels) ?? [:]
         Fields.register(customFields, renamed: fieldLabels)

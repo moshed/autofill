@@ -859,13 +859,20 @@ private struct SetupView: View {
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 220)
                 }
+                Toggle("Fill card and bank details", isOn: Binding(
+                    get: { model.data.fillPayment },
+                    set: { model.data.fillPayment = $0; model.save() }))
                 Toggle("Work offline — never ask the AI", isOn: Binding(
                     get: { model.data.offline },
                     set: { model.data.offline = $0; model.save() }))
             } header: {
                 Label("Updates and AI", systemImage: "arrow.triangle.2.circlepath")
             } footer: {
-                Text("Leave the key empty and the app uses a shared one. The key is not in "
+                Text("Card and bank boxes are left alone until you switch them on. "
+                     + "One click fills every box on a page, and an account and routing "
+                     + "number together are enough to take money by direct debit, so this "
+                     + "is worth deciding on purpose.\n\n"
+                     + "Leave the key empty and the app uses a shared one. The key is not in "
                      + "the app - the request goes to dancykier.com, which holds it. Paste your "
                      + "own TypeSafe key to use that instead and skip the middleman.\n\n"
                      + "It checks for a new version once a day. Offline mode stops every call "

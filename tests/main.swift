@@ -398,6 +398,40 @@ func checkHebrewStateVsCountry() -> Int {
     return bad
 }
 
+/// Card and bank boxes: refused until Moshe switches them on.
+func checkPayment() -> Int {
+    var bad = 0
+    print("\ncard and bank boxes")
+    let boxes = ["Card number", "CVV", "Name on card", "Card expiration date",
+                 "Routing number", "Account number", "IBAN", "Sort code"]
+
+    Match.payment = false
+    for label in boxes {
+        let g = Fields.guessType(FormField(label: label, name: "x"))
+        let ok = g.confidence < 0
+        if !ok { bad += 1 }
+        print("  \(ok ? "ok   " : "WRONG") off: \(label.padding(toLength: 24, withPad: " ", startingAt: 0)) -> \(ok ? "refused" : (g.key ?? "?"))")
+    }
+
+    Match.payment = true
+    let want = ["Card number": "card_number", "CVV": "card_cvv",
+                "Name on card": "card_name", "Card expiration date": "card_expiry",
+                "IBAN": "iban"]
+    for (label, key) in want.sorted(by: { $0.key < $1.key }) {
+        let got = Fields.guessType(FormField(label: label, name: "x")).key
+        let ok = got == key
+        if !ok { bad += 1 }
+        print("  \(ok ? "ok   " : "WRONG") on:  \(label.padding(toLength: 24, withPad: " ", startingAt: 0)) -> \(got ?? "nothing")")
+    }
+    // A search box is refused whatever this setting says.
+    let search = Fields.guessType(FormField(label: "Search", name: "q"))
+    let okSearch = search.confidence < 0
+    if !okSearch { bad += 1 }
+    print("  \(okSearch ? "ok   " : "WRONG") on:  a search box is still refused")
+    Match.payment = false
+    return bad
+}
+
 func checkDates() -> Int {
     var bad = 0
     print("\ndates in the app")
@@ -477,7 +511,12 @@ func checkNeverFill() async -> Int {
         // alone, so this passed for months while the Hebrew and Chinese
         // patterns were being deleted before they were ever tried - the
         // haystack stripped every non-ASCII letter. Demand the RULE.
-        let byRule = (got.why ?? "").contains("not a personal detail")
+        // Either rule counts: a search box is "not a personal detail", a card is
+        // "payment details are switched off". What must not happen is a field
+        // left empty because nothing matched.
+        let why = got.why ?? ""
+        let byRule = why.contains("not a personal detail")
+            || why.contains("payment details are switched off")
         let ok = !got.ok && byRule
         if !ok { bad += 1 }
         let n = name.padding(toLength: 44, withPad: " ", startingAt: 0)
@@ -664,6 +703,7 @@ Task {
     failures += await checkNeverFill()
     failures += await checkPages()
     failures += checkHebrewStateVsCountry()
+    failures += checkPayment()
     failures += checkDates()
     failures += checkFieldEditing()
     print("\n\(failures == 0 ? "all good" : "\(failures) failures")")

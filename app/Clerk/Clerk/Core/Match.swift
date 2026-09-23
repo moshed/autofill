@@ -100,6 +100,10 @@ enum Match {
     /// an empty key now means "use the shared key on the proxy".
     nonisolated(unsafe) static var offline = false
 
+    /// Whether card and bank boxes may be filled at all. Off unless Moshe says
+    /// otherwise in Setup.
+    nonisolated(unsafe) static var payment = false
+
     /// A noul is a rank, not a probability. Tune these against tests/cases.json,
     /// never by eye.
     static let typeMin = 0.25

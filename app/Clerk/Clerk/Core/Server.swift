@@ -30,6 +30,7 @@ final class Server: ObservableObject {
         data = demo ?? Store.load()
         jevKey = data.jevKey
         Match.offline = data.offline
+        Match.payment = data.fillPayment
     }
 
     private var demoData: StoreData?

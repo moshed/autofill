@@ -25,7 +25,7 @@ enum FieldGroup {
     // live in Miscellaneous, which is also where a new field lands by default.
     static let order = ["Name", "Personal", "Contact", "Passport", "Travel",
                         "ID", "Address", "Work", "Vehicle", "Emergency",
-                        "Miscellaneous"]
+                        "Payment", "Miscellaneous"]
 
     static let symbols = [
         "Name": "textformat",
@@ -38,6 +38,7 @@ enum FieldGroup {
         "Work": "briefcase.fill",
         "Vehicle": "car.fill",
         "Emergency": "cross.case.fill",
+        "Payment": "creditcard.fill",
         "Miscellaneous": "tray.full.fill",
     ]
 
@@ -67,7 +68,7 @@ enum Fields {
                   weak: [], isName: true, group: "Name"),
         FieldType(key: "full_name", label: "Full name",
                   question: "the person's whole name on one line",
-                  strong: [#"\bfull[\s_-]?name"#, #"\bname[\s_-]?on[\s_-]?(card|passport|ticket)"#,
+                  strong: [#"\bfull[\s_-]?name"#, #"\bname[\s_-]?on[\s_-]?(passport|ticket)"#,
                            #"\bpassenger[\s_-]?name"#, #"\byour[\s_-]?name"#, #"^name$"#,
                            #"שם מלא"#, #"שם הנוסע"#],
                   weak: [#"\bname\b"#, #"שם"#], isName: true, group: "Name", derived: true),
@@ -169,6 +170,36 @@ enum Fields {
         FieldType(key: "drivers_license", label: "Driver's license",
                   question: "a driver's license number",
                   strong: [#"driver'?s?[\s_-]?licen[sc]e"#, #"\bdl[\s_-]?(no|num|number)"#], weak: [], group: "ID"),
+
+        // Payment. Only ever filled when Setup says so - see `paymentFields`.
+        FieldType(key: "card_name", label: "Name on card",
+                  question: "the name printed on a payment card",
+                  strong: [#"name[\s_-]?on[\s_-]?card"#, #"\bcardholder"#,
+                           #"\bcc[\s_-]?name"#, #"card[\s_-]?user[\s_-]?name"#],
+                  weak: [], group: "Payment"),
+        FieldType(key: "card_number", label: "Card number",
+                  question: "a credit or debit card number",
+                  strong: [#"card[\s_-]?(number|no|num)"#, #"\bcc[\s_-]?number"#,
+                           #"credit[\s_-]?card"#, #"\bccnumber"#, #"\bpan\b"#],
+                  weak: [], group: "Payment"),
+        FieldType(key: "card_expiry", label: "Card expires",
+                  question: "the month and year a payment card expires",
+                  strong: [#"card[\s_-]?expir\w*[\s_-]?date"#, #"card[\s_-]?expir"#,
+                           #"\bcc[\s_-]?exp"#, #"expiration[\s_-]?date"#, #"\bccexp"#],
+                  weak: [], group: "Payment"),
+        FieldType(key: "card_cvv", label: "Security code",
+                  question: "the three or four digit security code on a payment card",
+                  strong: [#"\bcvv\b"#, #"\bcvc\b"#, #"\bcsc\b"#,
+                           #"security[\s_-]?code"#, #"card[\s_-]?verification"#],
+                  weak: [], group: "Payment"),
+        FieldType(key: "card_brand", label: "Card type",
+                  question: "which card network this is - Visa, Mastercard, Amex",
+                  strong: [#"card[\s_-]?type"#, #"\bcc[\s_-]?type"#,
+                           #"type[\s_-]?of[\s_-]?card"#],
+                  weak: [], group: "Payment"),
+        FieldType(key: "iban", label: "IBAN",
+                  question: "an international bank account number",
+                  strong: [#"\biban\b"#], weak: [], group: "Payment"),
 
         FieldType(key: "address_line1", label: "Address line 1",
                   question: "the street part of a postal address",
@@ -342,11 +373,6 @@ enum Fields {
         #"\bcomment"#, #"\bmessage\b"#, #"\bfeedback"#, #"\bsubject\b"#,
         #"\bquantity"#, #"\bamount\b"#, #"\bprice\b"#,
         #"\bverification"#, #"\bone[\s_-]?time"#, #"\botp\b"#, #"\bpasscode"#,
-        // Card and bank details are never filled in. They are not in the store
-        // and they are not going to be.
-        #"\bcard[\s_-]?(number|no|num)"#, #"\bcc[\s_-]?(number|name|exp|csc|cvv)"#,
-        #"\bcredit[\s_-]?card"#, #"\bdebit"#, #"\bcvv\b"#, #"\bcvc\b"#,
-        #"\bsecurity[\s_-]?code"#, #"\biban\b"#, #"\brouting"#, #"\baccount[\s_-]?number"#,
 
         // The same boxes in other languages. Found on 2026-09-22: a French form's
         // "Rechercher sur le site" was NOT recognised as a search box. It only
@@ -369,7 +395,23 @@ enum Fields {
         #"\bcode[\s_-]?de[\s_-]?vérification"#, #"\bcódigo[\s_-]?de[\s_-]?verificaci"#,
         #"\bbestätigungscode"#, #"\bverifizierung"#, #"\bverifica"#,
         #"验证码"#, #"認証コード"#, #"確認コード"#, #"인증번호"#, #"קוד אימות"#,
-        // Card security
+    ]
+
+    /// Card and bank boxes. Blocked unless Moshe has switched payment filling
+    /// on in Setup - `Match.payment`. They were once blocked outright, on the
+    /// grounds that the details were not in the store; they are now, and this is
+    /// the switch that decides.
+    ///
+    /// The risk this leaves is real and worth naming: one click fills every box
+    /// on a page, and a routing and account pair is enough to take money by
+    /// direct debit, unlike a passport number which mostly just identifies you.
+    static let paymentFields = [
+        #"\bcard[\s_-]?(number|no|num)"#, #"\bcc[\s_-]?(number|name|exp|csc|cvv)"#,
+        #"\bcredit[\s_-]?card"#, #"\bdebit[\s_-]?card"#, #"\bcvv\b"#, #"\bcvc\b"#,
+        #"\bcsc\b"#, #"\bsecurity[\s_-]?code"#, #"\biban\b"#, #"\brouting"#,
+        #"\baccount[\s_-]?number"#, #"\bsort[\s_-]?code"#, #"\baba\b"#,
+        #"name[\s_-]?on[\s_-]?card"#, #"\bcardholder"#, #"card[\s_-]?expir"#,
+        #"card[\s_-]?type"#, #"card[\s_-]?verification"#, #"card[\s_-]?user"#,
         #"\bcarte[\s_-]?de[\s_-]?crédit"#, #"\btarjeta[\s_-]?de[\s_-]?crédito"#,
         #"\bkreditkarte"#, #"\bcarta[\s_-]?di[\s_-]?credito"#, #"信用卡"#, #"クレジットカード"#,
     ]
@@ -444,8 +486,16 @@ enum Fields {
         if hay.trimmingCharacters(in: .whitespaces).isEmpty {
             return Guess(key: nil, confidence: 0, why: "nothing to read on the field")
         }
-        if !fillAnyway.contains(where: { matches($0, hay) }),
-           let p = neverFill.first(where: { matches($0, hay) }) {
+        // A library or loyalty card is not a payment card, so it survives both
+        // lists. That check has to come first or "library card number" is read
+        // as a payment box.
+        let anyway = fillAnyway.contains(where: { matches($0, hay) })
+        // A payment box is refused unless he has turned payment filling on.
+        if !anyway, !Match.payment, let p = paymentFields.first(where: { matches($0, hay) }) {
+            return Guess(key: nil, confidence: -1,
+                         why: "payment details are switched off (/\(p)/)")
+        }
+        if !anyway, let p = neverFill.first(where: { matches($0, hay) }) {
             // -1 tells the caller not to bother the AI either.
             return Guess(key: nil, confidence: -1, why: "not a personal detail (/\(p)/)")
         }
