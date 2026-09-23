@@ -21,13 +21,14 @@
       ],
       "all_frames": true,
       "js": [
+        "options.js",
         "content.js"
       ],
       "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_title": "Clerk \u2014 click to fill, double-click to choose",
+    "default_title": "Clerk — click to fill, double-click to choose",
     "default_icon": {
       "48": "icons/icon-48.png",
       "96": "icons/icon-96.png",

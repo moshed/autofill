@@ -15,3 +15,8 @@ swiftc -target arm64-apple-macos13.0 -O \
 # item and would pop a password prompt on each one.
 export JEV_API_KEY="${JEV_API_KEY:-$(security find-generic-password -s jev_api -w 2>/dev/null)}"
 "$OUT" "$@"
+
+# The cross-language option matching lives in the extension, so it is checked
+# with node rather than swift.
+echo
+node "$(dirname "$0")/options.test.js" || exit 1

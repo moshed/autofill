@@ -186,7 +186,11 @@ enum Fields {
                            #"עיר"#, #"יישוב"#], weak: [], shared: true, group: "Address"),
         FieldType(key: "state", label: "State",
                   question: "the state, province or region of a postal address",
-                  strong: [#"\bstate\b"#, #"\bprovince\b"#, #"\bregion\b"#, #"\bcounty\b"#],
+                  // "מדינה" is BOTH country and state in Hebrew. El Al's label is
+                  // "מדינה בארה\u{05F4}ב" - state in the USA - and the longest match
+                  // wins, so the fuller phrase lands here rather than on country.
+                  strong: [#"\bstate\b"#, #"\bprovince\b"#, #"\bregion\b"#, #"\bcounty\b"#,
+                           #"מדינה בארה"#, #"מדינה באר"#, #"מחוז"#],
                   weak: [], shared: true, group: "Address"),
         FieldType(key: "postal_code", label: "ZIP / postal code",
                   question: "a postal or ZIP code",

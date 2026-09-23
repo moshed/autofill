@@ -378,6 +378,26 @@ func checkPages() async -> Int {
 // Stored ISO. Shown and typed American, because that is what Moshe reads.
 // What a FORM gets is decided separately, by the page - see the fill cases.
 
+/// Hebrew "מדינה" is country AND state. The fuller phrase must win.
+func checkHebrewStateVsCountry() -> Int {
+    var bad = 0
+    print("\nstate or country")
+    let cases: [(String, String)] = [
+        ("מדינה בארה\u{05F4}ב", "state"),
+        ("ארץ מגורים", "country"),
+        ("ארץ", "country"),
+        ("State / Province", "state"),
+        ("Country", "country"),
+    ]
+    for (label, want) in cases {
+        let got = Fields.guessType(FormField(label: label, name: "x")).key
+        let ok = got == want
+        if !ok { bad += 1 }
+        print("  \(ok ? "ok   " : "WRONG") \(label.padding(toLength: 20, withPad: " ", startingAt: 0)) -> \(got ?? "nothing")")
+    }
+    return bad
+}
+
 func checkDates() -> Int {
     var bad = 0
     print("\ndates in the app")
@@ -643,6 +663,7 @@ Task {
     failures += checkLinking()
     failures += await checkNeverFill()
     failures += await checkPages()
+    failures += checkHebrewStateVsCountry()
     failures += checkDates()
     failures += checkFieldEditing()
     print("\n\(failures == 0 ? "all good" : "\(failures) failures")")

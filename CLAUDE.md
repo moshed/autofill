@@ -1222,3 +1222,30 @@ Measured by driving it, not by reading it:
 
 The menu bar icon is there throughout, the process keeps running, and the helper
 still answers 200 with no window on screen.
+
+## A menu says "New York", the store says "NY"
+
+Matching a menu option against a stored value when the two are not written the
+same way. It lives in **`extension/options.js`**, on purpose: no DOM beyond the
+page's language, so `tests/options.test.js` runs it under node and
+`tests/run.sh` includes it.
+
+Three tables, tried only after a plain match fails:
+
+- **Countries** - the browser's own, through `Intl.DisplayNames`, in English, the
+  page's language and Hebrew. Plus a short three-letter list, because travel
+  forms use `USA` and Intl does not know it.
+- **States and provinces** - a real table of the 50 states, DC, the territories
+  and the Canadian provinces. There is no Intl table for subdivisions. The old
+  trick of taking initials ("New York" -> "ny") still sits underneath as a last
+  resort, but it gets **District of Columbia** wrong, so it is no longer first.
+- **Sex** - so a radio labelled זכר / נקבה takes a stored `M`. Matched on the
+  LABEL, never on a value like `1`/`0`, which means nothing by itself.
+
+`node tests/options.test.js` checks both directions, including the ones that must
+NOT match: New Jersey does not take NY, Israel does not take United States,
+נקבה does not take M.
+
+**"מדינה" is both country and state in Hebrew.** El Al's label is
+"מדינה בארה״ב", state in the USA, and the longest match wins, so the fuller
+phrase lands on state while a bare "מדינה" or "ארץ" stays on country. Tested.
