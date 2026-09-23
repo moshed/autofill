@@ -269,7 +269,7 @@ enum Match {
 
     static func nameFor(_ pid: String?, _ v: FieldValue, _ data: StoreData) -> String {
         let who = pid.flatMap { data.person($0)?.displayName } ?? "Household"
-        return v.label.isEmpty ? who : "\(who) · \(v.label)"
+        return v.label.isEmpty ? who : "\(who) · \(Labels.pretty(v.label))"
     }
 
     static func value(_ v: FieldValue, _ type: String, _ field: FormField,
@@ -760,7 +760,10 @@ enum Match {
                 !v.label.isEmpty && v.label != want && words(for: v.label).contains(where: own.contains)
             }
             if !namesItsOwn {
-                let mineFirst = mine.filter { $0.label == want } + mine.filter { $0.label != want }
+                // Compared without case, so "American" and "american" are one
+                // and the same label.
+                let same = { (a: String) in a.caseInsensitiveCompare(want) == .orderedSame }
+                let mineFirst = mine.filter { same($0.label) } + mine.filter { !same($0.label) }
                 pick = VariantChoice(ranked: mineFirst, sure: true, why: "you picked \(want)")
             } else {
                 pick = VariantChoice(ranked: pick.ranked, sure: true,

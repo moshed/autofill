@@ -128,7 +128,7 @@ struct Person: Codable, Identifiable, Hashable {
 struct CustomField: Codable, Hashable, Identifiable {
     var key: String
     var label: String
-    var group: String = "Other"
+    var group: String = "Miscellaneous"
     var shared: Bool = false
     var id: String { key }
 }

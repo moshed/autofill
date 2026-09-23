@@ -494,7 +494,7 @@ let offers: [OfferCase] = [
     OfferCase(name: "bare Email, two addresses stored",
               payload: FormPayload(title: "Newsletter", fields: [
                 field("Email", name: "e", current: true)]),
-              want: ["Nolan · personal", "Nolan · work"]),
+              want: ["Nolan · Personal", "Nolan · Work"]),
 
     // Two people named, nothing saying which block the cursor is in.
     OfferCase(name: "two travelers, no blocks to tell them apart",

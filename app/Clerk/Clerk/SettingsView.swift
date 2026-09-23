@@ -342,6 +342,22 @@ private struct PersonEditor: View {
 /// One field type. Usually one line; press + for a second, and a short label box
 /// appears so "work" and "personal" can be told apart. The chain marks a value
 /// as the family's.
+/// A softer, rounder box than `.roundedBorder`, which is square and dated.
+struct MacField: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(Color(nsColor: .textBackgroundColor)))
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .strokeBorder(Color.primary.opacity(0.14), lineWidth: 1))
+    }
+}
+
 /// Nudges a control sideways once, to say "you cannot type here".
 private struct Shake: ViewModifier, Animatable {
     var shakes: CGFloat
@@ -383,19 +399,19 @@ private struct FieldRows: View {
             ForEach(Array(rows.enumerated()), id: \.offset) { i, v in
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text(i == 0 ? type.label : "")
-                        .frame(width: 168, alignment: .trailing)
-                        .foregroundStyle(.secondary)
+                        .frame(width: 168, alignment: .leading)
+                        .foregroundStyle(.primary)
                         .lineLimit(1)
 
                     if rows.count > 1 {
                         TextField("which", text: bindLabel(i))
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(MacField())
                             .frame(width: 92)
                     }
 
                     ZStack {
                         TextField(isDate ? "mm/dd/yyyy" : "", text: bindValue(i))
-                            .textFieldStyle(.roundedBorder)
+                            .textFieldStyle(MacField())
                             .disabled(lockedBy(i) != nil)
                             .foregroundStyle(lockedBy(i) == nil ? Color.primary : Color.secondary)
                             .modifier(Shake(shakes: shakes[i] ?? 0))
@@ -533,7 +549,7 @@ private struct FieldRows: View {
     }
 
     private func bindLabel(_ i: Int) -> Binding<String> {
-        Binding(get: { rows.indices.contains(i) ? rows[i].label : "" },
+        Binding(get: { rows.indices.contains(i) ? Labels.pretty(rows[i].label) : "" },
                 set: { var r = rows; r[i].label = $0
                        list = r.filter { !$0.value.isEmpty || !$0.label.isEmpty } })
     }
@@ -702,7 +718,7 @@ struct NewFieldSheet: View {
     let done: () -> Void
 
     @State private var label = ""
-    @State private var group = "Other"
+    @State private var group = "Miscellaneous"
     @State private var newGroup = ""
 
     private var key: String {

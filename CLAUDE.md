@@ -1249,3 +1249,26 @@ NOT match: New Jersey does not take NY, Israel does not take United States,
 **"מדינה" is both country and state in Hebrew.** El Al's label is
 "מדינה בארה״ב", state in the USA, and the longest match wins, so the fuller
 phrase lands on state while a bare "מדינה" or "ארץ" stays on country. Tested.
+
+## The editor's look, and what a label is called
+
+- **Field names sit on the left, in black.** They were right aligned and grey,
+  which read as a caption rather than as the name of the thing.
+- **`MacField`** replaces `.roundedBorder`, which is square and dated: a 9pt
+  continuous corner, a hairline border and the system text background.
+- **`Labels.pretty`** shows the short word beside a value the way the airline
+  writes it - `elal` becomes "El Al", `skymiles` becomes "SkyMiles", `starlux`
+  becomes "STARLUX", `work` becomes "Work". Anything Moshe capitalised himself is
+  left exactly as he typed it. It is used in the editor AND in the list of
+  profiles the page shows, so "Moshe · american" now reads "Moshe · American".
+  His stored labels were rewritten once to match.
+- Picking a variant compares labels **without case**, so "American" and
+  "american" are one label whichever way an older store spelled it.
+
+## ID is identity, Miscellaneous is everything else
+
+"ID" holds government issued identity only - a national ID or social security
+number, and a driver's licence. Insurance cards, a library card, a policy number
+and bank details are not identity; they sit under **Miscellaneous**, which is
+also where a new field lands by default. The old catch-all called "Other" is
+gone, so there is one place for the odds and ends rather than two.

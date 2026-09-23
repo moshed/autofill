@@ -11,7 +11,7 @@ struct FieldType: Identifiable {
     let weak: [String]       // tried only when no strong pattern matched anything
     var shared = false       // the family's by default, so a new one starts linked
     var isName = false       // its value names the person a block is about
-    var group = "Other"      // the heading it sits under in the app
+    var group = "Miscellaneous"   // the heading it sits under in the app
     /// Worked out from other fields, so it is filled on a form but never shown
     /// as something to type in. Full name is first + last.
     var derived = false
@@ -20,8 +20,12 @@ struct FieldType: Identifiable {
 
 /// The order the groups appear in the app, and the symbol each one wears.
 enum FieldGroup {
+    // "ID" is government issued identity only - a social security number, a
+    // driver's licence. Cards, policies and account numbers are not identity and
+    // live in Miscellaneous, which is also where a new field lands by default.
     static let order = ["Name", "Personal", "Contact", "Passport", "Travel",
-                        "ID", "Address", "Work", "Vehicle", "Emergency", "Other"]
+                        "ID", "Address", "Work", "Vehicle", "Emergency",
+                        "Miscellaneous"]
 
     static let symbols = [
         "Name": "textformat",
@@ -29,12 +33,12 @@ enum FieldGroup {
         "Contact": "at",
         "Passport": "book.closed.fill",
         "Travel": "airplane",
-        "ID": "creditcard.fill",
+        "ID": "person.text.rectangle.fill",
         "Address": "house.fill",
         "Work": "briefcase.fill",
         "Vehicle": "car.fill",
         "Emergency": "cross.case.fill",
-        "Other": "square.grid.2x2.fill",
+        "Miscellaneous": "tray.full.fill",
     ]
 
     static func symbol(_ group: String) -> String {
@@ -527,5 +531,42 @@ enum Dates {
         guard p[2].count == 4, let m = Int(p[0]), let d = Int(p[1]),
               (1...12).contains(m), (1...31).contains(d) else { return nil }
         return String(format: "%@-%02d-%02d", p[2], m, d)
+    }
+}
+
+
+/// The short word beside a value - "work", "american", "elal". Stored as Moshe
+/// types it, shown the way the airline writes it.
+enum Labels {
+    private static let known: [String: String] = [
+        "american": "American", "aadvantage": "AAdvantage",
+        "delta": "Delta", "skymiles": "SkyMiles",
+        "united": "United", "mileageplus": "MileagePlus",
+        "elal": "El Al", "matmid": "Matmid",
+        "jetblue": "JetBlue", "trueblue": "TrueBlue",
+        "southwest": "Southwest", "alaska": "Alaska",
+        "cathay": "Cathay", "chinasouthern": "China Southern",
+        "starlux": "STARLUX", "emirates": "Emirates",
+        "lufthansa": "Lufthansa", "britishairways": "British Airways",
+        "airfrance": "Air France", "klm": "KLM", "iberia": "Iberia",
+        "bonvoy": "Bonvoy", "marriott": "Marriott",
+        "honors": "Honors", "hilton": "Hilton", "hyatt": "Hyatt",
+        "ihg": "IHG", "wyndham": "Wyndham", "prioritypass": "Priority Pass",
+        "tsa": "TSA", "global": "Global Entry",
+        "work": "Work", "personal": "Personal", "home": "Home",
+        "mobile": "Mobile", "cell": "Cell", "school": "School",
+        "billing": "Billing", "shipping": "Shipping", "other": "Other",
+    ]
+
+    /// "elal" -> "El Al", "american" -> "American", "my club" -> "My Club".
+    static func pretty(_ label: String) -> String {
+        let t = label.trimmingCharacters(in: .whitespaces)
+        guard !t.isEmpty else { return t }
+        let bare = t.lowercased().filter { $0.isLetter || $0.isNumber }
+        if let nice = known[bare] { return nice }
+        // Leave anything he capitalised himself alone.
+        if t != t.lowercased() { return t }
+        return t.split(separator: " ").map { $0.prefix(1).uppercased() + $0.dropFirst() }
+            .joined(separator: " ")
     }
 }
