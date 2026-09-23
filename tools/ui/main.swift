@@ -47,9 +47,13 @@ guard let windows = attr(ax, kAXWindowsAttribute as String) as? [AXUIElement],
 let mode = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "dump"
 let want = CommandLine.arguments.count > 2 ? CommandLine.arguments[2] : ""
 var done = false
+var focusSeen = 0
 
 func walk(_ e: AXUIElement, _ depth: Int) {
-    if done { return }
+    // A cap, because a SwiftUI tree can be very deep and the indentation alone
+    // then makes each line enormous. 40,000 elements and a 900KB dump once came
+    // out of a single window.
+    if done || depth > 40 { return }
     let role = str(e, kAXRoleAttribute as String)
     let n = name(e)
     switch mode {
@@ -64,6 +68,16 @@ func walk(_ e: AXUIElement, _ depth: Int) {
            n.localizedCaseInsensitiveContains(want) {
             AXUIElementPerformAction(e, kAXPressAction as CFString)
             print("clicked: \(n)"); done = true; return
+        }
+    case "focus":
+        // Focusing a control scrolls it into view, which is the only reliable
+        // way to photograph the bottom of a long form.
+        if role == "AXTextField" {
+            focusSeen += 1
+            if focusSeen == Int(want) ?? -1 {
+                AXUIElementSetAttributeValue(e, kAXFocusedAttribute as CFString, kCFBooleanTrue)
+                print("focused field #\(focusSeen)"); done = true; return
+            }
         }
     case "select":
         // A sidebar row is an AXRow holding static text, not a button, so it is
