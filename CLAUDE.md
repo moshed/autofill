@@ -1288,7 +1288,20 @@ It hands the file to the app with `-ImportFile` rather than writing the keychain
 itself, for the usual reason: macOS ties a keychain item to whoever created it,
 so **Clerk has to be the process that writes it**. Same path the API key takes.
 
-The other way in is Clerk's own **Import** box, which never leaves the Mac either.
+The other way in is Clerk's own **Import** box. Two buttons:
+
+- **Sort it out here** - the local pass only. Nothing leaves the Mac.
+- **Extract with AI** - also sends the lines the patterns could not read.
+
+**A card, bank or social security line is never sent, whichever is pressed.**
+`Importer.sensitive` holds back a row whose label mentions card, cvv, routing,
+IBAN, account number or social security, and - with no label at all - any value
+that passes the **Luhn** check at card length, or the **ABA** check at nine
+digits. Tested both ways: those are held, while a name, an email, a passport
+number and a street still go.
+
+That guard exists because the importer is the ONE place a value leaves the Mac,
+and nobody should have to remember which button not to press.
 
 **Safari's saved cards cannot be read out.** They live in the keychain locked to
 Safari, and pulling card numbers out of another app's credential store is not

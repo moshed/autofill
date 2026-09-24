@@ -399,6 +399,40 @@ func checkHebrewStateVsCountry() -> Int {
 }
 
 /// Card and bank boxes: refused until Moshe switches them on.
+/// A card or bank line must never be handed to the AI, whichever button is used.
+func checkNeverSent() -> Int {
+    var bad = 0
+    print("\nlines the AI must never see")
+    let held: [(String, String)] = [
+        ("Card number", "4111 1111 1111 1111"),
+        ("", "4111111111111111"),                 // no label at all, just a card
+        ("", "5555555555554444"),                 // Mastercard test number
+        ("Routing number", "021000021"),
+        ("", "021000021"),                        // a real ABA, unlabelled
+        ("CVV", "123"),
+        ("IBAN", "GB29NWBK60161331926819"),
+        ("Social security", "000-00-0000"),
+    ]
+    for (label, value) in held {
+        let row = ImportRow(rawLabel: label, value: value)
+        let ok = Importer.sensitive(row)
+        if !ok { bad += 1 }
+        let what = label.isEmpty ? "(no label) \(value)" : label
+        print("  \(ok ? "ok   " : "WRONG") held back: \(what)")
+    }
+    // And the ordinary things still go, or the importer stops being useful.
+    let fine: [(String, String)] = [
+        ("Prenom", "Judah"), ("", "moshe@example.com"),
+        ("Passport", "A08300753"), ("", "45 Meadow Ln"),
+    ]
+    for (label, value) in fine {
+        let ok = !Importer.sensitive(ImportRow(rawLabel: label, value: value))
+        if !ok { bad += 1 }
+        print("  \(ok ? "ok   " : "WRONG") may be sent: \(label.isEmpty ? value : label)")
+    }
+    return bad
+}
+
 func checkPayment() -> Int {
     var bad = 0
     print("\ncard and bank boxes")
@@ -703,6 +737,7 @@ Task {
     failures += await checkNeverFill()
     failures += await checkPages()
     failures += checkHebrewStateVsCountry()
+    failures += checkNeverSent()
     failures += checkPayment()
     failures += checkDates()
     failures += checkFieldEditing()

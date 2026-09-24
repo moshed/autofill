@@ -144,9 +144,52 @@ enum Importer {
 
     /// Pass 2. Ask Jev about the rows pass 1 could not name, one line at a time.
     /// It is given the line as pasted and can also say whose it is.
+    /// A line that must never be sent anywhere, whatever the button says.
+    ///
+    /// The paste importer is the ONE place a value leaves the Mac, and that was
+    /// fine while it was names and passport numbers. A card number is different:
+    /// nobody should have to remember not to press the button. So a line that
+    /// looks like a payment card, a routing number or a social security number
+    /// is kept here and sorted by the patterns alone.
+    static func sensitive(_ row: ImportRow) -> Bool {
+        let label = row.rawLabel.lowercased()
+        for word in ["card", "cvv", "cvc", "csc", "routing", "iban", "sort code",
+                     "account number", "ssn", "social security", "aba"]
+        where label.contains(word) { return true }
+
+        let digits = row.value.filter(\.isNumber)
+        if (13...19).contains(digits.count), luhn(digits) { return true }   // a card
+        if digits.count == 9, aba(digits) { return true }                   // a routing number
+        return false
+    }
+
+    /// The check digit every payment card carries.
+    private static func luhn(_ digits: String) -> Bool {
+        var sum = 0
+        for (i, c) in digits.reversed().enumerated() {
+            guard let d = c.wholeNumberValue else { return false }
+            if i % 2 == 1 {
+                let x = d * 2
+                sum += x > 9 ? x - 9 : x
+            } else {
+                sum += d
+            }
+        }
+        return sum % 10 == 0
+    }
+
+    /// The check digit a US routing number carries.
+    private static func aba(_ digits: String) -> Bool {
+        let d = digits.compactMap(\.wholeNumberValue)
+        guard d.count == 9 else { return false }
+        let total = 3 * (d[0] + d[3] + d[6]) + 7 * (d[1] + d[4] + d[7]) + (d[2] + d[5] + d[8])
+        return total % 10 == 0
+    }
+
     static func classifyLeftovers(_ rows: [ImportRow], people: [Person],
                                   key: String) async -> [ImportRow] {
-        let todo = rows.enumerated().filter { $0.element.type == nil }
+        let todo = rows.enumerated()
+            .filter { $0.element.type == nil && !sensitive($0.element) }
         guard !todo.isEmpty, !Match.offline else { return rows }
 
         var out = rows

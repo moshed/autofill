@@ -617,9 +617,14 @@ private struct ImportSheet: View {
             HStack {
                 Button("Cancel") { done() }
                 Spacer()
-                Button(busy ? "Reading…" : "Extract with AI") { Task { await extract() } }
+                Button("Sort it out here") { Task { await extract(useAI: false) } }
+                    .disabled(raw.isEmpty || busy)
+                    .help("Patterns only. Nothing leaves this Mac.")
+                Button(busy ? "Reading…" : "Extract with AI") { Task { await extract(useAI: true) } }
                     .buttonStyle(.borderedProminent)
                     .disabled(raw.isEmpty || busy)
+                    .help("Sends the lines the patterns could not read. Card, bank and "
+                          + "social security numbers are never sent, whichever you press.")
             }
         }
         .padding(20)
@@ -691,12 +696,14 @@ private struct ImportSheet: View {
         }
     }
 
-    private func extract() async {
+    private func extract(useAI: Bool) async {
         busy = true
         defer { busy = false }
         let parsed = Importer.parse(raw, people: model.data.people)
-        var out = await Importer.classifyLeftovers(parsed, people: model.data.people,
-                                                   key: model.data.jevKey)
+        var out = useAI
+            ? await Importer.classifyLeftovers(parsed, people: model.data.people,
+                                               key: model.data.jevKey)
+            : parsed
         out.sort { !$0.sure && $1.sure }
         rows = out
     }
